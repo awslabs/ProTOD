@@ -1,0 +1,32 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Dependency Image
+ARG PROTOD_BASE
+ARG ACCOUNT
+ARG REGION
+
+FROM ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/kics:latest AS kicks
+
+# Base Image
+
+FROM ${PROTOD_BASE}
+
+RUN apk add --no-cache git zip \
+    && rm -rf /var/cache/apk/*
+
+VOLUME /opt/protod
+VOLUME /tmp
+
+COPY ./supporting-files/script-kics.sh ./supporting-files/script-all-start.sh \
+     ./supporting-files/script-all-end.sh /opt/protod/
+RUN chown -R protod:protod /opt/protod \
+    && chmod -R 750 /opt/protod
+
+# Install Kics
+COPY --from=kicks /app/bin/ /usr/local/bin/
+
+USER protod
+WORKDIR /opt/protod
+
+ENTRYPOINT [ "/opt/protod/script-kics.sh" ]

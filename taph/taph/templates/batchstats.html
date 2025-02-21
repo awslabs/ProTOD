@@ -1,0 +1,48 @@
+<!-- Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ SPDX-License-Identifier: Apache-2.0 -->
+{% extends 'base.html' %}
+{% block title %}ProTOD - Scan Status Page{% endblock %}
+{% block content %}
+    <p>&nbsp;</p>
+    <h1>Scan Status Page</h1>
+    <p>&nbsp;</p>
+    {% if scan_ids %}
+        {% if gbj %}
+        <ul>
+            {% for vars in gbj %}
+                <li>
+                    <emphasis class="fw-bold">{{ vars }}: {{ gbj[vars] }}</emphasis>
+                </li>
+            {% endfor %}
+        </ul>
+        <p>&nbsp;</p>
+        <!-- The Variable needs HTML markup and renders a cloudwatch log. Both do not render properly without the safe tag. -->
+        {{ my_logs|safe }} <!-- nosemgrep: template-unescaped-with-safe -->
+        {% else %}
+        <h3>Your Current Scans:</h3>
+        <ul>
+            {% for scan in scan_ids %}
+                <li class="li-style">
+                    <span class="bs-float-left">
+                        {% for image in image_list %}
+                        {% for key, value in image.items() %}
+                        {% if  key == scan.jobName %}
+                        <img src="data:image/png;base64,{{ value }}" class="img-fixup" alt="{{ scan.jobName }}">
+                        {% endif %}
+                        {% endfor %}
+                        {% endfor %}
+                    </span>
+                    <span class="bs-float-right">
+                        <a href="/batchstats/?bscan={{ scan.jobId }}"><emphasis class="fw-bold">{{ scan.jobId }}</emphasis></a> Submitted at: {{ scan.time }}
+                    </span>
+                    <br clear="both"/>
+                </li>
+            {% endfor %}
+        </ul>
+        <p>&nbsp;</p>
+        <emphasis>If link isn't responsive, there may not be logs yet.</emphasis>
+        {% endif %}
+    {% else %}
+    <h3>You currently do not have any recent scans.</h3>
+    {% endif %}
+{% endblock %}

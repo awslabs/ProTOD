@@ -1,0 +1,106 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This template deploys the ProTOD Lambda that retrieves the ELB public key for JWT verification
+
+Resources:
+  ProTODLambdaJWTPubKey:
+  # Check: CKV_AWS_117: "Ensure that AWS Lambda function is configured inside a VPC"
+  # checkov:skip=CKV_AWS_117:Lambda does not need access to VPC resources
+    Type: AWS::Lambda::Function
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W89
+            reason: "Lambda does not need access to VPC resources."
+    Properties:
+      Description: Lambda Function write tool stats data to DynamoDB.
+      DeadLetterConfig:
+        TargetArn: !ImportValue ProTODAdminSNSTopic
+      TracingConfig:
+        Mode: Active
+      Role: !GetAtt ProTODLambdaJWTPubKeyServiceRole.Arn
+      ReservedConcurrentExecutions: 100
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Code:
+        ZipFile: |
+            import urllib3
+            import re
+            import os
+
+            uuid_regex = r"^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$"
+            region = os.environ['AWS_REGION']
+
+            def get_pub_cert(kid):
+                cert_url=f"https://public-keys.auth.elb.{region}.amazonaws.com/{kid}"
+                http = urllib3.PoolManager()
+                r = http.request("GET", cert_url, timeout=2.0)
+                if r.status != 200:
+                    return {"status": r.status, "reason": r.reason}
+                else:
+                    return r.data.decode("utf-8")
+
+
+            def lambda_handler(event, context):
+                try:
+                    kid = event["kid"]
+                    if not re.search(uuid_regex, kid):
+                        return {"status": "Failed", "reason": "Key submitted was not in a UUID format."}
+                    cert = get_pub_cert(kid)
+                    return cert
+                except Exception as e:
+                    return {"status": "Failed", "reason": e}
+
+  ProTODLambdaJWTPubKeyServiceRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: "xray:PutTraceSegments and PutTelemetryRecords aren't resource-scoped API, so you can't scope them down."
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action: "sns:Publish"
+            Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:*"
+        PolicyName: ProTODLambdaJWTPubKeySNSTopicDestinationExecutionRole
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - "logs:CreateLogGroup"
+            - "logs:CreateLogStream"
+            - "logs:PutLogEvents"
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+        PolicyName: ProTODLambdaJWTPubKeyBasicExecutionRole
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - "xray:PutTraceSegments"
+            - "xray:PutTelemetryRecords"
+            Resource: "*"     # These are not resource-scoped API, so you can't scope them down.
+        PolicyName: ProTODLambdaJWTPubKeyXRayPermissions
+
+Outputs:
+  ProTODLambdaJWTARN:
+    Description: Lambda Function ARN
+    Value: !GetAtt ProTODLambdaJWTPubKey.Arn
+    Export:
+      Name: "ProTODLambdaJWTARN"

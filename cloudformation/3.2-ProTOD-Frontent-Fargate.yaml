@@ -1,0 +1,267 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys the Fargate cluster for the front end
+
+Resources:
+  FrontEndCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      CapacityProviders:
+        - FARGATE
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+
+  FrontEndService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref FrontEndCluster
+      LaunchType: FARGATE
+      LoadBalancers:
+        - ContainerName: taph
+          ContainerPort: 8080
+          TargetGroupArn: !ImportValue FrontEndALBTargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref FargateTaskSG
+          Subnets:
+            - !ImportValue ProTODFrontEndPrivateSubnetAZ1
+            - !ImportValue ProTODFrontEndPrivateSubnetAZ2
+      TaskDefinition: !Ref FrontEndTasks
+      DesiredCount: 0
+
+  FrontEndTasks:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Name: "taph"
+          DependsOn:
+            - Condition: "START"
+              ContainerName: "redis"
+          Essential: true
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/protod-taph:latest"
+          ReadonlyRootFilesystem: true
+          MountPoints:
+            - SourceVolume: "cft"
+              ContainerPath: "/home/protod/static/cft"
+              ReadOnly: false
+            - SourceVolume: "tmp"
+              ContainerPath: "/tmp"
+              ReadOnly: false
+          Privileged: false
+          PortMappings:
+            - ContainerPort: 8080
+              HostPort: 8080
+          LogConfiguration:
+            LogDriver: "awslogs"
+            Options:
+              "awslogs-create-group": "true"
+              "awslogs-group": "fargate-frontend"
+              "awslogs-region": !Sub "${AWS::Region}"
+              "awslogs-stream-prefix": "taph"
+        - Name: "redis"
+          Essential: true
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/protod-redis:latest"
+          ReadonlyRootFilesystem: true
+          MountPoints:
+            - SourceVolume: "data"
+              ContainerPath: "/data"
+              ReadOnly: false
+          Privileged: false
+          LogConfiguration:
+            LogDriver: "awslogs"
+            Options:
+              "awslogs-create-group": "true"
+              "awslogs-group": "fargate-frontend"
+              "awslogs-region": !Sub "${AWS::Region}"
+              "awslogs-stream-prefix": "redis"
+      Volumes:
+        - Name: "cft"
+        - Name: "data"
+        - Name : "tmp"
+      Cpu: "1024"
+      Memory: "2048"
+      ExecutionRoleArn: !GetAtt FargateEcsTaskExecutionRole.Arn
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      TaskRoleArn: !GetAtt FargateEcsTaskRole.Arn
+
+  FargateTaskSG:
+    Type: AWS::EC2::SecurityGroup
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W5
+            reason: "Fargate Egress. Website needs to make HTTPS API calls to AWS endpoints"
+    Properties:
+      GroupDescription: FrontEnd Fargate Tasks SG
+      SecurityGroupEgress:
+        -
+          Description: Fargate Egress. Website needs to make AWS API calls
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        -
+          Description: Fargate Ingress. taph needs to receive web traffic on port 8080 from the ELB
+          SourceSecurityGroupId: !ImportValue FrontEndALBSG
+          IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+      VpcId: !ImportValue ProTODFrontEndVPC
+
+  FargateEcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: "* is used for non-resource scoped APIs."
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              "StringEquals":
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                Resource:
+                  - !Sub
+                    - 'arn:aws:s3:::${ProTODWebUploadS3Bucket}/*'
+                    - ProTODWebUploadS3Bucket: !ImportValue ProTODWebUploadS3Bucket
+              - Effect: Allow
+                Action:
+                  - 'ecr:BatchCheckLayerAvailability'
+                  - 'ecr:GetDownloadUrlForLayer'
+                  - 'ecr:BatchGetImage'
+                Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - 'ecr:GetAuthorizationToken'
+                Resource: "*" # GetAuthorizationToken isn't a resource-scoped API, so you can't scope it down.
+          PolicyName: FargateEcsTaskExecutionRole
+
+  FargateEcsTaskRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: "* is used for non-resource scoped APIs."
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              "StringEquals":
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                  - 's3:PutObjectAcl'
+                Resource:
+                  - !Sub
+                    - 'arn:aws:s3:::${ProTODWebUploadS3Bucket}/*'
+                    - ProTODWebUploadS3Bucket: !ImportValue ProTODWebUploadS3Bucket
+              - Effect: Allow
+                Action:
+                  - 'sns:ListSubscriptionsByTopic'
+                  - 'sns:CreateTopic'
+                  - 'sns:Subscribe'
+                  - 'sns:TagResource'
+                  - 'sns:ListTopics' # Used for Debugging
+                Resource:
+                  - !Sub 'arn:aws:sns:*:${AWS::AccountId}:*'
+              - Effect: Allow
+                Action:
+                  - 'batch:SubmitJob'
+                  - 'batch:TagResource'
+                Resource:
+                  - !Sub 'arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/*Queue*'
+                  - !Sub 'arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-definition/*Definition*'
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:Scan'
+                Resource:
+                  - !ImportValue ProTODDynamoDBToolsTableArn
+              - Effect: Allow
+                Action:
+                  - 'secretsmanager:GetSecretValue' # pragma: allowlist secret # Allowlist reason: is not a secret
+                # SecretsManager Policy Restricts Access.
+                # Note this is protod* because we do not know the full ARN yet. in Fargate1 we can import it since SecretsManage is created
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:app/protod*" # pragma: allowlist secret # Allowlist reason: is not a secret
+              - Effect: Allow
+                Action:
+                  - 'logs:GetLogEvents'
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/batch/job:*"
+              - Effect: Allow
+                Action:
+                  - 'ec2:DescribeRegions'
+                  - 'iam:ListRoles'
+                  - 'sts:GetCallerIdentity'
+                  - 'batch:DescribeJobs'
+                Resource: "*" # The above actions must be specified on all resources. These are not resource-scoped API, so you can't scope it down.
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource:
+                  - !ImportValue ProTODLambdaJWTARN
+          PolicyName: FargateEcsTaskRole
+
+Outputs:
+  FargateEcsTaskRole:
+    Description: The Fargate Task Role
+    Value: !Ref FargateEcsTaskRole
+    Export:
+      Name: "FargateEcsTaskRole"
+  FargateEcsTaskExecutionRole:
+    Description: The Fargate Task Execution Role
+    Value: !Ref FargateEcsTaskExecutionRole
+    Export:
+      Name: "FargateEcsTaskExecutionRole"
+  FrontEndClusterName:
+    Description: FrontEndClusterName
+    Value: !Ref FrontEndCluster
+    Export:
+      Name: "FrontEndClusterName"
+  FrontEndServiceName:
+    Description: FrontEndServiceName
+    Value: !Ref FrontEndService
+    Export:
+      Name: "FrontEndServiceName"

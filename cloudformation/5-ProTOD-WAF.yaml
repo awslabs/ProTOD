@@ -1,0 +1,105 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploys the WAF attached to the ALB
+
+Resources:
+  WafWebAcl:
+    Type: "AWS::WAFv2::WebACL"
+    Properties:
+      Name: "WAF_Protections"
+      Scope: "REGIONAL"
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: "WAF_Common_Protections"
+        SampledRequestsEnabled: true
+      CustomResponseBodies:
+        FileTooLarge:
+          Content: "File(s) too large. Max size is 100MB"
+          ContentType: TEXT_PLAIN
+      Rules:
+      - Name: HTTP_Body_Size_Limit
+        Action:
+          Block:
+            CustomResponse:
+              ResponseCode: 503
+              CustomResponseBodyKey: FileTooLarge
+        Statement:
+          SizeConstraintStatement:
+            Size: 100000000
+            ComparisonOperator: GE
+            FieldToMatch:
+              Body:
+                OversizeHandling: CONTINUE
+            TextTransformations:
+              - Priority: 0
+                Type: NONE
+        Priority: 0
+        VisibilityConfig:
+          CloudWatchMetricsEnabled: true
+          MetricName: "HTTPPostSizeLimit"
+          SampledRequestsEnabled: true
+      - Name: "AWSManagedRulesCommonRule"
+        Statement:
+          ManagedRuleGroupStatement:
+            VendorName: "AWS"
+            Name: "AWSManagedRulesCommonRuleSet"
+        Priority: 10
+        OverrideAction:
+          Count: {}
+        VisibilityConfig:
+          CloudWatchMetricsEnabled: true
+          MetricName: "AWSManagedRulesCommonRule"
+          SampledRequestsEnabled: true
+      - Name: "AWSManagedRulesKnownBadInputsRule"
+        Statement:
+          ManagedRuleGroupStatement:
+            VendorName: "AWS"
+            Name: "AWSManagedRulesKnownBadInputsRuleSet"
+        Priority: 20
+        OverrideAction:
+          None: {}
+        VisibilityConfig:
+          CloudWatchMetricsEnabled: true
+          MetricName: "AWSManagedRulesKnownBadInputsRule"
+          SampledRequestsEnabled: true
+      - Name: "AWSManagedRulesAmazonIpReputation"
+        Statement:
+          ManagedRuleGroupStatement:
+            VendorName: "AWS"
+            Name: "AWSManagedRulesAmazonIpReputationList"
+        Priority: 30
+        OverrideAction:
+          None: {}
+        VisibilityConfig:
+          CloudWatchMetricsEnabled: true
+          MetricName: "AWSManagedRulesAmazonIpReputation"
+          SampledRequestsEnabled: true
+      - Name: "AWSManagedRulesBotControlRuleSet"
+        Statement:
+          ManagedRuleGroupStatement:
+            VendorName: "AWS"
+            Name: "AWSManagedRulesBotControlRuleSet"
+        Priority: 40
+        OverrideAction:
+          None: {}
+        VisibilityConfig:
+          CloudWatchMetricsEnabled: true
+          MetricName: "AWSManagedRulesBotControlRuleSet"
+          SampledRequestsEnabled: true
+  WebACLAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Properties:
+      ResourceArn: !ImportValue FrontEndALB
+      WebACLArn: !GetAtt WafWebAcl.Arn
+
+Outputs:
+  ProTODWAF:
+    Description: The WAF Protecting ProTOD
+    Value:
+      Fn::GetAtt: WafWebAcl.Arn
+    Export:
+      Name: "ProTODDWAF"

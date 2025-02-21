@@ -1,0 +1,488 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This template deploys the ProTOD Lambda that writes to DynamoDB
+
+Resources:
+  ProTODLambdaWriteToDynamoDB:
+  # Check: CKV_AWS_117: "Ensure that AWS Lambda function is configured inside a VPC"
+  # checkov:skip=CKV_AWS_117:Lambda does not need access to VPC resources
+    Type: AWS::Lambda::Function
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W89
+            reason: "Lambda does not need access to VPC resources."
+    Properties:
+      Description: Lambda Function write tool stats data to DynamoDB.
+      DeadLetterConfig:
+        TargetArn: !ImportValue ProTODAdminSNSTopic
+      TracingConfig:
+        Mode: Active
+      Role: !GetAtt SQSToDynamoFunctionServiceRole.Arn
+      ReservedConcurrentExecutions: 100
+      Layers:
+      - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:46
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Code:
+        ZipFile: !Sub
+        - |
+          import datetime
+          import logging
+          import boto3
+          import json
+          import ast
+          from botocore.exceptions import ClientError
+          from aws_lambda_powertools.utilities.validation import validate, SchemaValidationError
+          MY_SCHEMA = {
+              "type": "object",
+              "required": ["id", "AWS_BATCH_JOB_ID", "DSR_TICKET", "NUM_FILES", "TOTALK_SIZE", "TOTAL_LINES", "OPERATOR", "USERNAME",
+                          "CREATED_AT", "STARTED_AT", "STOPPED_AT", "JOB_STATUS", "TOOL_NAME", "TOOL_VERSION", "INTERNAL_BUCKET", "EXTERNAL_BUCKET", "FINDING_SEVERITY"],
+              "properties": {
+                  "id": {
+                      "type": "object",
+                      "required": ["N"],
+                      "properties": {
+                          "N": {
+                              "type": "string",
+                              "pattern": "^[0-9]*$"
+                          }
+                      }
+                  },
+                  "AWS_BATCH_JOB_ID": {
+                      "type": "object",
+                      "required": ["S"],
+                      "properties": {
+                          "S": {
+                              "type": "string"
+                          }
+                      }
+                  },
+                  "DSR_TICKET": {
+                      "type": "object",
+                      "required": ["S"],
+                      "properties": {
+                          "S": {
+                              "type": "string"
+                          }
+                      }
+                  },
+                  "NUM_FILES": {
+                      "type": "object",
+                      "required": ["N"],
+                      "properties": {
+                          "N": {
+                              "type": "string",
+                              "pattern": "^[0-9]*$"
+                          }
+                      }
+                  },
+                  "TOTALK_SIZE": {
+                      "type": "object",
+                      "required": ["N"],
+                      "properties": {
+                          "N": {
+                              "type": "string",
+                              "pattern": "^[0-9]*$"
+                          }
+                      }
+                  },
+                  "TOTAL_LINES": {
+                      "type": "object",
+                      "required": ["N"],
+                      "properties": {
+                          "N": {
+                              "type": "string",
+                              "pattern": "^[0-9]*$"
+                          }
+                      }
+                  },
+                  "OPERATOR": {
+                      "type": "object",
+                      "required": ["S"],
+                      "properties": {
+                          "S": {
+                              "type": "string"
+                          }
+                      }
+                  },
+                  "USERNAME": {
+                      "type": "object",
+                      "required": ["S"],
+                      "properties": {
+                          "S": {
+                              "type": "string"
+                          }
+                      }
+                  },
+                  "CREATED_AT": {
+                      "type": "object",
+                      "required": ["N"],
+                      "properties": {
+                          "N": {
+                              "type": "string",
+                              "pattern": "^[0-9]*$"
+                          }
+                      }
+                  },
+                  "STARTED_AT": {
+                      "type": "object",
+                      "required": ["N"],
+                      "properties": {
+                          "N": {
+                              "type": "string",
+                              "pattern": "^[0-9]*$"
+                          }
+                      }
+                  },
+                  "STOPPED_AT": {
+                      "type": "object",
+                      "required": ["N"],
+                      "properties": {
+                          "N": {
+                              "type": "string",
+                              "pattern": "^[0-9]*$"
+                          }
+                      }
+                  },
+                  "JOB_STATUS": {
+                      "type": "object",
+                      "required": ["S"],
+                      "properties": {
+                          "S": {
+                              "type": "string"
+                          }
+                      }
+                  },
+                  "TOOL_NAME": {
+                      "type": "object",
+                      "required": ["S"],
+                      "properties": {
+                          "S": {
+                              "type": "string"
+                          }
+                      }
+                  },
+                  "TOOL_VERSION": {
+                      "type": "object",
+                      "required": ["S"],
+                      "properties": {
+                          "S": {
+                              "type": "string"
+                          }
+                      }
+                  },
+                  "INTERNAL_BUCKET": {
+                      "type": "object",
+                      "required": ["N"],
+                      "properties": {
+                          "N": {
+                              "type": "string",
+                              "pattern": "^[0-1]$"
+                          }
+                      }
+                  },
+                  "EXTERNAL_BUCKET": {
+                      "type": "object",
+                      "required": ["N"],
+                      "properties": {
+                          "N": {
+                              "type": "string",
+                              "pattern": "^[0-1]$"
+                          }
+                      }
+                  },
+                  "FINDING_SEVERITY": {
+                      "type": "object",
+                      "required": ["M"],
+                      "properties": {
+                          "M": {
+                              "type": "object",
+                              "required": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNDEFINED", "FAILURE", "ERROR", "WARNING", "INFO", "STYLE", "PASS", "INFECTED", "SKIPPED", "NOTICE"],
+                              "properties": {
+                                  "CRITICAL": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "HIGH": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "MEDIUM": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "LOW": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "UNDEFINED": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "FAILURE": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "ERROR": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "WARNING": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "INFO": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "STYLE": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "PASS": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "INFECTED": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "SKIPPED": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  },
+                                  "NOTICE": {
+                                      "type": "object",
+                                      "required": ["N"],
+                                      "properties": {
+                                          "N": {
+                                              "type": "string",
+                                              "pattern": "^[0-9]*$"
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+          def parse_json(json_data):
+              data = ast.literal_eval(str(json_data))
+              return data
+          def validateJson(jsonData):
+              try:
+                  validate(event=jsonData, schema=MY_SCHEMA)
+              except SchemaValidationError as err:
+                  return False
+              return True
+          def get_jobTimes(batchJobId):
+              try:
+                  job = batch_client.describe_jobs(jobs=[batchJobId, ],)
+              except ClientError as e:
+                  logging.error(e)
+                  return None
+              job = batch_client.describe_jobs(jobs=[batchJobId, ],)
+              myjob = job['jobs'][0]
+              createdAt = myjob['createdAt']
+              startedAt = myjob['startedAt']
+              stoppedAt = myjob['stoppedAt']
+              status = myjob['status']
+              return (createdAt, startedAt, stoppedAt, status)
+          dynamo_client = boto3.client('dynamodb')
+          batch_client = boto3.client('batch')
+          def lambda_handler(event, context):
+              logger = logging.getLogger(__name__)
+              logger.setLevel(logging.INFO)
+              logger.info("request: " + json.dumps(event))
+              payload = event['Records'][0]['body']
+              logger.info("received message " + payload)
+              seconds_since_epoch = datetime.datetime.now().timestamp()
+              myid = int(seconds_since_epoch * 1000000)
+              jsonData = parse_json(payload)
+              batchJobId = jsonData['AWS_BATCH_JOB_ID']['S']
+              createdAt, startedAt, stoppedAt, status = get_jobTimes(batchJobId)
+              jsonData['id']['N'] = jsonData['id']['N'].replace(jsonData['id']['N'], str(myid))
+              jsonData['CREATED_AT']['N'] = jsonData['CREATED_AT']['N'].replace(jsonData['CREATED_AT']['N'], str(createdAt))
+              jsonData['STARTED_AT']['N'] = jsonData['STARTED_AT']['N'].replace(jsonData['STARTED_AT']['N'], str(startedAt))
+              jsonData['STOPPED_AT']['N'] = jsonData['STOPPED_AT']['N'].replace(jsonData['STOPPED_AT']['N'], str(stoppedAt))
+              jsonData['JOB_STATUS']['S'] = jsonData['JOB_STATUS']['S'].replace(jsonData['JOB_STATUS']['S'], str(status))
+              isValid = validateJson(jsonData)
+              if isValid:
+                  # print(jsonData)
+                  print("Given JSON data is valid, sending to DynamoDB")
+                  try:
+                      dynamo_client.put_item(TableName="${ProTODDynamoDBScanTableName}", Item=jsonData)
+                  except Exception as e:
+                      logger.error(e)
+              else:
+                  # print(jsonData)
+                  print("Given JSON data is invalid, exiting.")
+        - ProTODDynamoDBScanTableName: !ImportValue ProTODDynamoDBScanTableName
+
+  SQSToDynamoFunctionSqsEventSource:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties:
+      FunctionName: !Ref ProTODLambdaWriteToDynamoDB
+      EventSourceArn: !ImportValue ProTODSQSArn
+
+  SQSToDynamoFunctionServiceRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: "xray: and batch: actions aren't resource-scoped API, so you can't scope them down."
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action: "sns:Publish"
+            Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:*"
+        PolicyName: ProTODLambdaSNSTopicDestinationExecutionRole
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - "logs:CreateLogGroup"
+            - "logs:CreateLogStream"
+            - "logs:PutLogEvents"
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+        PolicyName: ProTODLamdbaFromSQSBasicExecutionRole
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - "xray:PutTraceSegments"
+            - "xray:PutTelemetryRecords"
+            Resource: "*"     # These are not resource-scoped API, so you can't scope them down.
+        PolicyName: ProTODLambdaFromSQSXRayPermissions
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - "dynamodb:PutItem"
+            Resource: !ImportValue ProTODDynamoDBScanTableArn
+        PolicyName: ProTODLambdaDynamoDBPut
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - "batch:DescribeJobs"
+            Resource: "*"     # DescribeJobs isn't a resource-scoped API, so you can't scope it down.
+        PolicyName: LambdaDescribeBatchJobs
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - "sqs:ReceiveMessage"
+            - "sqs:ChangeMessageVisibility"
+            - "sqs:GetQueueUrl"
+            - "sqs:DeleteMessage"
+            - "sqs:GetQueueAttributes"
+            Resource: !ImportValue ProTODSQSArn
+        PolicyName: SQSToDynamoFunctionServiceRoleDefaultPolicy
+
+Outputs:
+  ProTODLambdaWriteToDynamoDB:
+    Description: Lambda Function ARN
+    Value: !GetAtt ProTODLambdaWriteToDynamoDB.Arn
+    Export:
+      Name: "ProTODLambdaWriteToDynamoDB"

@@ -1,0 +1,1332 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys the ECR environment for the tool containers
+
+Resources:
+  ProTODECRredis:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-redis
+  ProTODECRtaph:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-taph
+  ProTODECRCfnNag:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-cfnnag
+  ProTODECRBandit:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-bandit
+  ProTODECRProwler:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-prowler
+  ProTODECRSemgrep:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-semgrep
+  ProTODECRCheckov:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-checkov
+  ProTODECRTerrascan:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-terrascan
+  ProTODECRShellcheck:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-shellcheck
+  ProTODECRDetectsecrets:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-detectsecrets
+  ProTODECRYamllint:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-yamllint
+  ProTODECRKics:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-kics
+  ProTODECRClamav:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-clamav
+  ProTODECRFreshclam:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-freshclam
+  ProTODECRCfnLint:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-cfnlint
+  ProTODECRTfLint:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-tflint
+  ProTODECRTfSec:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-tfsec
+  ProTODECRRepoLinter:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-repolinter
+  ProTODECRLastContainer:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-lastcontainer
+  ProTODECRBedRock:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: protod-bedrock
+  ProTODECRredisimage:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: redis
+  ProTODECRalpine:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: alpine
+  ProTODECRpython:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: python
+  ProTODECRkics:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: kics
+  ProTODECRterrascan:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: terrascan
+  ProTODECRtflintbundle:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: tflint-bundle
+  ProTODECRtfsec:
+  # Check: CKV_AWS_136: "Ensure that ECR repositories are encrypted using KMS"
+  # checkov:skip=CKV_AWS_136:Using AES256 encryption type. Amazon ECR uses server-side encryption with Amazon S3-managed encryption keys
+    Type: AWS::ECR::Repository
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W28
+            reason: "Resources with explicit names are OK for this project."
+    Properties:
+      RepositoryPolicyText:
+        Version: 2012-10-17
+        Statement:
+        - Sid: Allow ECR Access from Account
+          Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+          Action:
+          - "ecr:BatchGetImage"
+          - "ecr:GetAuthorizationToken"
+          - "ecr:GetDownloadUrlForLayer"
+          - "ecr:BatchCheckLayerAvailability"
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Only keep 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+              },
+              "action": { "type": "expire" }
+            }]
+          }
+      EncryptionConfiguration:
+        EncryptionType: AES256
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: IMMUTABLE
+      RepositoryName: tfsec
+
+Outputs:
+  ProTODOutputECRredis:
+    Description: Container for Redis
+    Value:
+      Fn::GetAtt: ProTODECRredis.Arn
+    Export:
+      Name: "ProTODECRredis"
+  ProTODOutputECRtaph:
+    Description: Container for Taph
+    Value:
+      Fn::GetAtt: ProTODECRtaph.Arn
+    Export:
+      Name: "ProTODECRtaph"
+  ProTODOutputECRCfnNag:
+    Description: Container for cfn-nag
+    Value:
+      Fn::GetAtt: ProTODECRCfnNag.Arn
+    Export:
+      Name: "ProTODECRCfnNag"
+  ProTODOutputECRBandit:
+    Description: Container for bandit
+    Value:
+      Fn::GetAtt: ProTODECRBandit.Arn
+    Export:
+      Name: "ProTODECRBandit"
+  ProTODOutputECRProwler:
+    Description: Container for prowler
+    Value:
+      Fn::GetAtt: ProTODECRProwler.Arn
+    Export:
+      Name: "ProTODECRProwler"
+  ProTODOutputECRSemgrep:
+    Description: Container for semgrep
+    Value:
+      Fn::GetAtt: ProTODECRSemgrep.Arn
+    Export:
+      Name: "ProTODECRSemgrep"
+  ProTODOutputECRCheckov:
+    Description: Container for Checkov
+    Value:
+      Fn::GetAtt: ProTODECRCheckov.Arn
+    Export:
+      Name: "ProTODECRCheckov"
+  ProTODOutputECRTerrascan:
+    Description: Container for Terrascan
+    Value:
+      Fn::GetAtt: ProTODECRTerrascan.Arn
+    Export:
+      Name: "ProTODECRTerrascan"
+  ProTODOutputECRShellcheck:
+    Description: Container for Shellcheck
+    Value:
+      Fn::GetAtt: ProTODECRShellcheck.Arn
+    Export:
+      Name: "ProTODECRShellcheck"
+  ProTODOutputECRDetectsecrets:
+    Description: Container for Detectsecrets
+    Value:
+      Fn::GetAtt: ProTODECRDetectsecrets.Arn
+    Export:
+      Name: "ProTODECRDetectsecrets"
+  ProTODOutputECRyamllint:
+    Description: Container for Yamllint
+    Value:
+      Fn::GetAtt: ProTODECRYamllint.Arn
+    Export:
+      Name: "ProTODECRYamllint"
+  ProTODOutputECRKics:
+    Description: Container for Kics
+    Value:
+      Fn::GetAtt: ProTODECRKics.Arn
+    Export:
+      Name: "ProTODECRKics"
+  ProTODOutputECRClamav:
+    Description: Container for Clamav
+    Value:
+      Fn::GetAtt: ProTODECRClamav.Arn
+    Export:
+      Name: "ProTODECRClamav"
+  ProTODOutputECRFreshclamav:
+    Description: Container for Freshclam
+    Value:
+      Fn::GetAtt: ProTODECRFreshclam.Arn
+    Export:
+      Name: "ProTODECRFreshclam"
+  ProTODOutputECRCfnLint:
+    Description: Container for CfnLint
+    Value:
+      Fn::GetAtt: ProTODECRCfnLint.Arn
+    Export:
+      Name: "ProTODECRCfnLint"
+  ProTODOutputECRTfLint:
+    Description: Container for TfLint
+    Value:
+      Fn::GetAtt: ProTODECRTfLint.Arn
+    Export:
+      Name: "ProTODECRTfLint"
+  ProTODOutputECRTfSec:
+    Description: Container for TfSec
+    Value:
+      Fn::GetAtt: ProTODECRTfSec.Arn
+    Export:
+      Name: "ProTODECRTfSec"
+  ProTODOutputECRRepoLinter:
+    Description: Container for RepoLinter
+    Value:
+      Fn::GetAtt: ProTODECRRepoLinter.Arn
+    Export:
+      Name: "ProTODECRRepoLinter"
+  ProTODOutputECRLastContainer:
+    Description: Last Container
+    Value:
+      Fn::GetAtt: ProTODECRLastContainer.Arn
+    Export:
+      Name: "ProTODECRLastContainer"
+  ProTODOutputECRBedRock:
+    Description: BedRock
+    Value:
+      Fn::GetAtt: ProTODECRBedRock.Arn
+    Export:
+      Name: "ProTODECRBedRock"
+  ProTODOutputECRredisimage:
+    Description: redis-image
+    Value:
+      Fn::GetAtt: ProTODECRredisimage.Arn
+    Export:
+      Name: "ProTODECRredisimage"
+  ProTODOutputECRalpine:
+    Description: alpine
+    Value:
+      Fn::GetAtt: ProTODECRalpine.Arn
+    Export:
+      Name: "ProTODECRalpine"
+  ProTODOutputECRpython:
+    Description: python
+    Value:
+      Fn::GetAtt: ProTODECRpython.Arn
+    Export:
+      Name: "ProTODECRpython"
+  ProTODOutputECRkics:
+    Description: kics
+    Value:
+      Fn::GetAtt: ProTODECRkics.Arn
+    Export:
+      Name: "ProTODECRkics"
+  ProTODOutputECRterrascan:
+    Description: terrascan
+    Value:
+      Fn::GetAtt: ProTODECRterrascan.Arn
+    Export:
+      Name: "ProTODECRterrascan"
+  ProTODOutputECRtflintbundle:
+    Description: tflint-bundle
+    Value:
+      Fn::GetAtt: ProTODECRtflintbundle.Arn
+    Export:
+      Name: "ProTODECRtflint-bundle"
+  ProTODOutputECRtfsec:
+    Description: tfsec
+    Value:
+      Fn::GetAtt: ProTODECRtfsec.Arn
+    Export:
+      Name: "ProTODECRtfsec"

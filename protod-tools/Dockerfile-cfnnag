@@ -1,0 +1,26 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# build the base image
+ARG PROTOD_BASE
+
+FROM ${PROTOD_BASE}
+
+RUN  apk add --no-cache ruby \
+    && apk add --no-cache --virtual .tmp-build-deps alpine-sdk ruby-dev
+
+RUN gem install --no-document cfn-nag \
+    && apk del .tmp-build-deps \
+    && rm -rf /var/cache/apk/*
+
+VOLUME /opt/protod
+VOLUME /tmp
+COPY ./supporting-files/script-cfnnag.sh ./supporting-files/script-all-start.sh \
+     ./supporting-files/script-all-end.sh /opt/protod/
+RUN chown -R protod:protod /opt/protod \
+    && chmod -R 750 /opt/protod
+
+USER protod
+WORKDIR /opt/protod
+
+ENTRYPOINT ["/opt/protod/script-cfnnag.sh"]

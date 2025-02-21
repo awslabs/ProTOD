@@ -1,0 +1,121 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+# This template creates the Route53 Resolver Firewall to block Internet domains
+# and only allow access to amazonaws.com for AWS API.
+Description: Deploys the Route53 Resolver Firewall
+
+# VPC DNS FW for the VPC with outbound Internet Access
+Resources:
+  ProTODAllowedDomainLists:
+    Type: AWS::Route53Resolver::FirewallDomainList
+    Properties:
+      Domains:
+      - '*.amazonaws.com'
+      - 'database.clamav.net'
+      - 'current.cvd.clamav.net'
+      - 'database.clamav.net.cdn.cloudflare.net'
+      Name: ProTODAllowedDomainLists
+  ProTODDeniedDomainLists:
+    Type: AWS::Route53Resolver::FirewallDomainList
+    Properties:
+      Domains:
+      - '*'
+      Name: ProTODDeniedDomainLists
+
+  ProTODRuleGroup:
+    Type: AWS::Route53Resolver::FirewallRuleGroup
+    Properties:
+      FirewallRules:
+      - Action: ALLOW
+        FirewallDomainListId: !Ref ProTODAllowedDomainLists
+        Priority: 1
+      - Action: BLOCK
+        FirewallDomainListId: !Ref ProTODDeniedDomainLists
+        BlockResponse: NODATA
+        Priority: 2
+
+  ProTODFirewallRuleGroupAssociation:
+    Type: AWS::Route53Resolver::FirewallRuleGroupAssociation
+    Properties:
+      FirewallRuleGroupId: !Ref ProTODRuleGroup
+      Name: ProTODFirewallRuleGroupAssociation
+      Priority: 101
+      VpcId:
+        Fn::ImportValue: ProTODVPC
+
+# VPC DNS FW for the VPC no Internet Access
+
+  ProTODNoInetAllowedDomainLists:
+    Type: AWS::Route53Resolver::FirewallDomainList
+    Properties:
+      Domains:
+      - '*.amazonaws.com'
+      Name: ProTODNoInetAllowedDomainLists
+  ProTODNoInetDeniedDomainLists:
+    Type: AWS::Route53Resolver::FirewallDomainList
+    Properties:
+      Domains:
+      - '*'
+      Name: ProTODNoInetDeniedDomainLists
+
+  ProTODNoInetRuleGroup:
+    Type: AWS::Route53Resolver::FirewallRuleGroup
+    Properties:
+      FirewallRules:
+      - Action: ALLOW
+        FirewallDomainListId: !Ref ProTODNoInetAllowedDomainLists
+        Priority: 1
+      - Action: BLOCK
+        FirewallDomainListId: !Ref ProTODNoInetDeniedDomainLists
+        BlockResponse: NODATA
+        Priority: 2
+
+  ProTODNoInetFirewallRuleGroupAssociation:
+    Type: AWS::Route53Resolver::FirewallRuleGroupAssociation
+    Properties:
+      FirewallRuleGroupId: !Ref ProTODNoInetRuleGroup
+      Name: ProTODFirewallRuleGroupAssociation
+      Priority: 101
+      VpcId:
+        Fn::ImportValue: ProTODPrivateVPC
+
+# VPC DNS FW for the Frontend VPC where the ALB lives. ALB need access to Cognito.
+
+  ProTODFrontAllowedDomainLists:
+    Type: AWS::Route53Resolver::FirewallDomainList
+    Properties:
+      Domains:
+      - '*.amazonaws.com'
+      - '*.amazoncognito.com'
+      Name: ProTODFrontAllowedDomainLists
+
+  ProTODFrontDeniedDomainLists:
+    Type: AWS::Route53Resolver::FirewallDomainList
+    Properties:
+      Domains:
+      - '*'
+      Name: ProTODFrontDeniedDomainLists
+
+  ProTODFrontRuleGroup:
+    Type: AWS::Route53Resolver::FirewallRuleGroup
+    Properties:
+      FirewallRules:
+      - Action: ALLOW
+        FirewallDomainListId: !Ref ProTODFrontAllowedDomainLists
+        Priority: 1
+      - Action: BLOCK
+        FirewallDomainListId: !Ref ProTODFrontDeniedDomainLists
+        BlockResponse: NODATA
+        Priority: 2
+
+  ProTODFrontFirewallRuleGroupAssociation:
+    Type: AWS::Route53Resolver::FirewallRuleGroupAssociation
+    Properties:
+      FirewallRuleGroupId: !Ref ProTODFrontRuleGroup
+      Name: ProTODFirewallRuleGroupAssociation
+      Priority: 101
+      VpcId:
+        Fn::ImportValue: ProTODFrontEndVPC
+

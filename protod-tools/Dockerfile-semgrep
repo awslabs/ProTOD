@@ -1,0 +1,33 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+ARG PROTOD_BASE
+
+FROM ${PROTOD_BASE}
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+RUN apk add --no-cache git py3-pip python3-dev musl-dev gcc curl \
+    && rm -rf /var/cache/apk/*
+
+RUN pip install --no-cache-dir --break-system-packages --upgrade pip semgrep
+
+VOLUME /opt/protod
+VOLUME /tmp
+VOLUME /.semgrep
+VOLUME /.cache
+
+COPY ./supporting-files/script-semgrep.sh ./supporting-files/script-all-start.sh \
+     ./supporting-files/script-all-end.sh /opt/protod/
+
+RUN mkdir -p /.semgrep /.cache \
+    && chown -R protod:protod /.semgrep /.cache /opt/protod \
+    && chmod -R 750 /opt/protod /.semgrep /.cache
+
+USER protod
+WORKDIR /opt/protod
+
+RUN curl https://semgrep.dev/c/p/default > rules.txt
+
+ENTRYPOINT ["/opt/protod/script-semgrep.sh"]

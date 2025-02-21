@@ -1,0 +1,34 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+version: 0.2
+
+env:
+  exported-variables:
+  - ALBURL
+
+phases:
+  install:
+    commands:
+      # Install the AWS CLI V2.
+      # This doesn't remove AWS CLI V1, it just puts V2 before
+      # V1 on the path so that V2 is found first. V1 can still be
+      # accessed at /root/.pyenv/shims/aws.
+    - sudo mkdir /usr/local/awscliv2
+    - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    - unzip -q awscliv2.zip
+    - >
+      sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/awscliv2 --update
+    - export PATH="/usr/local/bin:$PATH"
+
+  build:
+    commands:
+    - cd scripts
+    - |
+      if [[ $CROSSACCOUNTIAMROLE && $ACCOUNT ]]; then
+        echo "Building ProTOD in account ID $ACCOUNT with role $CROSSACCOUNTIAMROLE"
+        . ./build-protod.sh --account $ACCOUNT --role $CROSSACCOUNTIAMROLE --stack $STACKNAME --bucket $BUILDBUCKET --dns $FQDN --cognito $COGNITODOMAIN --email $EMAIL $BUILDSTAGE
+       else
+        echo "Building ProTOD in account ID $ACCOUNT"
+        . ./build-protod.sh --account $ACCOUNT --stack $STACKNAME --bucket $BUILDBUCKET --dns $FQDN --cognito $COGNITODOMAIN --email $EMAIL $BUILDSTAGE
+       fi

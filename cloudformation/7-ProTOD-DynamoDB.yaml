@@ -1,0 +1,68 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Deploys DynamoDB
+
+Resources:
+  ProTODDynamoDBScanTable:
+    Type: AWS::DynamoDB::GlobalTable
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: id
+        AttributeType: 'N'
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+      Replicas:
+      - ContributorInsightsSpecification:
+          Enabled: true
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        Region: !Sub ${AWS::Region}
+        TableClass: STANDARD
+  ProTODDynamoDBToolsTable:
+    Type: AWS::DynamoDB::GlobalTable
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: TOOL_NAME
+        AttributeType: 'S'
+      - AttributeName: TOOL_TYPE
+        AttributeType: 'S'
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+      - AttributeName: TOOL_NAME
+        KeyType: HASH
+      - AttributeName: TOOL_TYPE
+        KeyType: RANGE
+      Replicas:
+      - ContributorInsightsSpecification:
+          Enabled: true
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        Region: !Sub ${AWS::Region}
+        TableClass: STANDARD
+
+Outputs:
+  ProTODDynamoDBScanTableArn:
+    Value: !GetAtt ProTODDynamoDBScanTable.Arn
+    Description: "ProTODDynamoDBScanTableArn"
+    Export:
+      Name: "ProTODDynamoDBScanTableArn"
+  ProTODDynamoDBToolsTableArn:
+    Value: !GetAtt ProTODDynamoDBToolsTable.Arn
+    Description: "ProTODDynamoDBToolsTableArn"
+    Export:
+      Name: "ProTODDynamoDBToolsTableArn"
+  ProTODDynamoDBScanTableName:
+    Value: !Ref ProTODDynamoDBScanTable
+    Description: "ProTODDynamoDBScanTableName"
+    Export:
+      Name: "ProTODDynamoDBScanTableName"
+  ProTODDynamoDBToolsTableName:
+    Value: !Ref ProTODDynamoDBToolsTable
+    Description: "ProTODDynamoDBToolsTableName"
+    Export:
+      Name: "ProTODDynamoDBToolsTableName"

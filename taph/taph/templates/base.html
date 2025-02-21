@@ -1,0 +1,49 @@
+<!-- Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ SPDX-License-Identifier: Apache-2.0 -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <meta name="description" content="" />
+    <title>
+      {% block title %}ProTOD - ProServe Tools on Demand{% endblock %}
+    </title>
+    <link
+      href="{{ url_for('static', filename= 'css/dropzone.min.css') }}"
+      rel="stylesheet"
+    />
+    <link
+      href="{{ url_for('static', filename= 'css/bootstrap.min.css') }}"
+      rel="stylesheet"
+    />
+    <link
+    href="{{ url_for('static', filename= 'css/style.overrides.css') }}"
+    rel="stylesheet"
+    />
+    <!-- Mitigating control is to use url_for function https://semgrep.dev/docs/cheat-sheets/flask-xss/#mitigation-8 -->
+    <!-- # nosemgrep: python.django.security.audit.xss.var-in-script-tag.var-in-script-tag -->
+    <script
+      src="{{ url_for('static', filename= 'js/bootstrap.bundle.min.js') }}" nosem
+    ></script>
+    <script
+      src="{{ url_for('static', filename= 'js/jquery.min.js') }}" nosem
+    ></script>
+    <script
+      src="{{ url_for('static', filename= 'js/dropzone.min.js') }}" nosem
+    ></script>
+    <script
+      src="{{ url_for('static', filename= 'js/color-mode.js') }}" nosem
+    ></script>
+  </head>
+  <body>
+    <div class="container">
+      {% block header%}
+        {% include 'header.html' %}
+      {% endblock %}
+      {% block content %}
+      {% endblock %}
+    </div>
+  </body>
+</html>

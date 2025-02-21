@@ -1,0 +1,294 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  pProTODCognitoDomain:
+    Type: String
+    MinLength: "3"
+    MaxLength: "63"
+    AllowedPattern: ^[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?$
+    Description: Enter a string. Must be alpha numeric 3-63 in length.
+  pProTODCertificate:
+    Type: String
+    Description: The ARN of the TLS Certificate to use in the ProTODELB
+  pProTODDNS:
+    Type: String
+    Description: The FQDN of the ProTOD URL. This should match the pProTODCertificate
+  pALBLogAccount:
+    Type: String
+    Description: ID of the AWS-owned account which receives access logs from the ELB.
+  pAdminEmailAddress:
+    Type: String
+    Description: ProTOD Admin email address for DLQ and other notifications
+
+Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W3002 # Reason: This is an informational message informing the user they cannot deploy this template without packaging first.
+
+Resources:
+  ProTODIAMAccessAnalyzer:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 0-ProTOD-AIM-AccessAnalyzer.yaml
+  ProTODSNSAdmin:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 0-ProTOD-SNS-Admin.yaml
+      Parameters:
+        pAdminEmailAddress: !Ref pAdminEmailAddress
+  ProTODSecurityNotifications:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODSNSAdmin
+    Properties:
+      TemplateURL: 0-ProTOD-Security-Notifications.yaml
+  ProTODFrontEndVPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 1-ProTOD-VPC-FrontEnd.yaml
+  ProTODToolsVPC:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 1-ProTOD-VPC-Tools-Internet.yaml
+  ProTODToolsVPCNoInet:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 1-ProTOD-VPC-Tools-No-Internet.yaml
+  ProTODDNSFW:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODToolsVPC
+      - ProTODFrontEndVPC
+      - ProTODToolsVPCNoInet
+    Properties:
+      TemplateURL: 1.1-ProTOD-DNS-FW.yaml
+  ProTODS3:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 2-ProTOD-S3.yaml
+      Parameters:
+        pALBLogAccount: !Ref pALBLogAccount
+  ProTODLambdaSignedURL:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSNSAdmin
+    Properties:
+      TemplateURL: lambda/2.1-ProTODLambdaSignedURL.yaml
+  ProTODBatch:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ProTODToolsVPC
+    Properties:
+      TemplateURL: 3-ProTOD-Batch-Internet.yaml
+  ProTODBatchNoInternet:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ProTODToolsVPCNoInet
+    Properties:
+      TemplateURL: 3-ProTOD-Batch-No-Internet.yaml
+  ProTODELB:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODFrontEndVPC
+      - ProTODS3
+      - ProTODCognitoDomain
+    Properties:
+      TemplateURL: 3.1-ProTOD-ELB.yaml
+      Parameters:
+        pProTODCertificate: !Ref pProTODCertificate
+  ProTODFrontentFargate:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODFrontEndVPC
+      - ProTODS3
+      - ProTODELB
+      - ProTODDynamoDB
+      - ProTODLambdaJWTPubKey
+    Properties:
+      TemplateURL: 3.2-ProTOD-Frontent-Fargate.yaml
+  ProTODSecretManager:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ProTODFrontentFargate
+    Properties:
+      TemplateURL: 3.3-ProTOD-SecretManager.yaml
+  ProTODWAF:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ProTODELB
+    Properties:
+      TemplateURL: 5-ProTOD-WAF.yaml
+  ProTODCognitoDomain:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        ProTODCognitoDomain: !Ref pProTODCognitoDomain
+        ProTODDNS: !Ref pProTODDNS
+      TemplateURL: 6-ProTOD-Cognito.yaml
+  ProTODECR:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 4-ProTOD-ECR.yaml
+  ProTODDynamoDB:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 7-ProTOD-DynamoDB.yaml
+  ProTODSQS:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 7-ProTOD-SQS.yaml
+  ProTODLambdaSQStoDynamo:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: lambda/7-ProTODLambdaFromSQS.yaml
+    DependsOn:
+      - ProTODDynamoDB
+      - ProTODSQS
+      - ProTODSNSAdmin
+  ProTODEvents:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: lambda/6-ProTODEvents.yaml
+    DependsOn:
+      - ProTODLambdaCleanUp
+  ProTODLambdaCleanUp:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: lambda/7-ProTODLambdaCleanUp.yaml
+    DependsOn:
+      - ProTODSNSAdmin
+  ProTODLambdaJWTPubKey:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: lambda/7-ProTODLambdaJWTPubKey.yaml
+    DependsOn:
+      - ProTODSNSAdmin
+
+  # ProTOD Tools
+  ProTODBandit:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Bandit.yaml
+  ProTODCfnNag:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-CfnNag.yaml
+  ProTODCheckov:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Checkov.yaml
+  ProTODProwler:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Prowler.yaml
+  ProTODSemgrep:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Semgrep.yaml
+  ProTODTerrascan:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Terrascan.yaml
+  ProTODShellcheck:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Shellcheck.yaml
+  ProTODYamllint:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Yamllint.yaml
+  ProTODDetectsecrets:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Detectsecrets.yaml
+  ProTODKics:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Kics.yaml
+  ProTODClamav:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Clamav.yaml
+  ProTODFreshclam:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+      - ProTODBatch # Needed because this is scheduled to the Internet Queue
+    Properties:
+      TemplateURL: 5-ProTOD-Freshclam.yaml
+  ProTODCfnLint:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-CfnLint.yaml
+  ProTODTfLint:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Tflint.yaml
+  ProTODTfSec:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-TfSec.yaml
+  ProTODRepoLinter:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-Repolinter.yaml
+  ProTODLastContainer:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+      - ProTODSQS
+    Properties:
+      TemplateURL: 5-ProTOD-lastcontainer.yaml
+  ProTODBedrock:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ProTODS3
+    Properties:
+      TemplateURL: 5-ProTOD-Bedrock.yaml

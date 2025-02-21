@@ -1,0 +1,48 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# build the base image
+ARG PROTOD_BASE
+ARG ACCOUNT
+ARG REGION
+
+# Base Image
+FROM ${PROTOD_BASE} as builder
+
+FROM ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/python:latest
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+RUN apk update \
+    && apk upgrade \
+    && apk --no-cache add bash unzip
+
+RUN addgroup -S protod && adduser -S protod -G protod \
+    && mkdir -p /opt/protod \
+    && echo 'protod:x:1000:1000:protod:/:' > /etc/passwd \
+    && echo 'protod:x:1000:' > /etc/group \
+    && chown -R protod:protod /opt/protod
+
+COPY --from=builder /usr/local/lib/aws-cli/ /usr/local/lib/aws-cli/
+RUN ln -s /usr/local/lib/aws-cli/aws /usr/local/bin/aws
+
+RUN apk add --no-cache git py3-pip \
+    && rm -rf /var/cache/apk/*
+
+RUN  apk add --no-cache --virtual .tmp-build-deps gcc libc-dev libffi-dev \
+    && pip3 install --no-cache-dir --break-system-packages pip checkov \
+    && apk del .tmp-build-deps \
+    && rm -rf /var/cache/apk/*
+
+VOLUME /opt/protod
+VOLUME /tmp
+COPY ./supporting-files/script-checkov.sh ./supporting-files/script-all-start.sh \
+     ./supporting-files/script-all-end.sh /opt/protod/
+RUN chown -R protod:protod /opt/protod \
+    && chmod -R 750 /opt/protod
+
+USER protod
+WORKDIR /opt/protod
+
+ENTRYPOINT [ "/opt/protod/script-checkov.sh" ]

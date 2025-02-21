@@ -1,0 +1,28 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Dependency Image
+ARG PROTOD_BASE
+ARG ACCOUNT
+ARG REGION
+
+FROM ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/tfsec:latest AS tfsec
+
+# Base Image
+
+FROM ${PROTOD_BASE}
+
+COPY --from=tfsec /usr/bin/tfsec /usr/bin/tfsec
+
+VOLUME /opt/protod
+VOLUME /tmp
+
+COPY ./supporting-files/script-tfsec.sh ./supporting-files/script-all-start.sh \
+     ./supporting-files/script-all-end.sh /opt/protod/
+RUN chown -R protod:protod /opt/protod && \
+    chmod -R 750 /opt/protod
+
+USER protod
+WORKDIR /opt/protod
+
+ENTRYPOINT ["/opt/protod/script-tfsec.sh"]

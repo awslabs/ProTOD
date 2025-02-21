@@ -1,0 +1,48 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Deploys SQS Queue
+
+Resources:
+  ProTODSQS:
+    Type: AWS::SQS::Queue
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W48
+            reason: "Using SSE-SQS with SqsManagedSseEnabled: true."
+    Properties:
+      DelaySeconds: 60
+      # Check: CKV_AWS_158: "Ensure that CloudWatch Log Group is encrypted by KMS"
+      # checkov:skip=CKV_AWS_27:Using SSE-SQS with SqsManagedSseEnabled: true
+      SqsManagedSseEnabled: true
+
+  ProTODSQSPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - !Ref ProTODSQS
+      PolicyDocument:
+        Statement:
+        - Action:
+          - "SQS:SendMessage"
+          - "SQS:ReceiveMessage"
+          Effect: "Allow"
+          Resource: !GetAtt ProTODSQS.Arn
+          Principal:
+            AWS:
+            - !Sub ${AWS::AccountId}
+
+Outputs:
+  ProTODSQSUrl:
+    Value: !Ref ProTODSQS
+    Description: "ProTODSQSUrl"
+    Export:
+      Name: "ProTODSQSUrl"
+  ProTODSQSArn:
+    Value: !GetAtt ProTODSQS.Arn
+    Description: "ProTODSQSArn"
+    Export:
+      Name: "ProTODSQSArn"

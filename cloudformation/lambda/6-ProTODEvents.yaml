@@ -1,0 +1,25 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This template deploys an event to schedule the Lambda function to Clean ProTOD unused resources
+
+Resources:
+  ProTODScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "CleanUpScheduledRule"
+      ScheduleExpression: "rate(7 days)"
+      State: "ENABLED"
+      Targets:
+      - Arn: !ImportValue "ProTODLambdaCleanUp"
+        Id: "latest"
+
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !ImportValue "ProTODLambdaCleanUp"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt ProTODScheduledRule.Arn

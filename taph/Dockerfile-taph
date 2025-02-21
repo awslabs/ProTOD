@@ -1,0 +1,38 @@
+ARG ACCOUNT
+ARG REGION
+
+FROM ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/python:latest as builder
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+RUN mkdir -p /home/protod && \
+    echo 'protod:x:1000:1000:protod:/home/protod:' > /etc/passwd && \
+    echo 'protod:x:1000:' > /etc/group
+
+VOLUME /home/protod/static/cft
+VOLUME /tmp
+
+COPY ./taph ./requirements.txt ./gunicorn.sh /home/protod/
+
+ARG ACCOUNTID
+RUN sed -i "s/123456789012/${ACCOUNTID}/g" /home/protod/static/cft/*.yaml
+
+WORKDIR /home/protod
+
+RUN chown -R protod:protod /home/protod \
+    && apk update \
+    && apk upgrade \
+    && apk add --update --no-cache --virtual .tmp-build-deps \
+      gcc libc-dev linux-headers libffi-dev musl-dev
+
+RUN pip install --no-cache-dir --break-system-packages --upgrade pip \
+    && pip install --no-cache-dir --break-system-packages -r requirements.txt \
+    && apk del .tmp-build-deps \
+    && rm -rf /var/cache/apk/*
+
+EXPOSE 8080
+
+USER protod
+
+ENTRYPOINT ["./gunicorn.sh"]

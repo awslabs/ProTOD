@@ -1,0 +1,34 @@
+<!-- Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ SPDX-License-Identifier: Apache-2.0 -->
+{% extends 'base.html' %}
+{% block title %}ProTOD - SNS Setup Page{% endblock %}
+{% block content %}
+    <p>&nbsp;</p>
+    <h2>AWS Simple Notification Service Setup Page</h2>
+    <p>&nbsp;</p>
+    <div class="container">
+        <p>AWS Simple Notification Service (SNS) is what allows the ProTOD website to notify you when scans have completed and documents are available for your review.</p>
+    </div>
+    {% if my_status == "SubNeeded" %}
+    <div class="container">
+        <p>Great work! The topic has been setup. Now you will need to add your email address to the topic. </p>
+        <strong>Click the button below to subscribe your email address:</strong> <emphasis>{{ email }}</emphasis>.
+        <!-- Mitigating control is to use url_for function https://semgrep.dev/docs/cheat-sheets/flask-xss/#mitigation-8 -->
+        <a href="{{ url_for('snssetup') }}" nosem><button type="button" class="btn btn-primary btn-lg">1-Click Subscribe</button></a>
+    </div>
+    {% elif my_status == "SubPending" %}
+    <div class="container">
+        <p>You have subscribed your email address: <emphasis>{{ email }}</emphasis> to receive scan results. Please keep an eye on your inbox for an email from "ProTOD Notifications" asking you to "Confirm subscription". Once confirmed you can click the button below to be returned to your scanning tool.</p>
+        <strong>Click the button below to check your status. Once completed you will be able to use the ProTOD utilities.</strong>
+        <!-- Mitigating control is to use url_for function https://semgrep.dev/docs/cheat-sheets/flask-xss/#mitigation-8 -->
+        <a href="{{ url_for('snssetup') }}" nosem><button type="button" class="btn btn-primary btn-lg">Check Status</button></a>
+    </div>
+    {% else %}
+    <div class="container">
+        <p>Prior to using ProTOD utilities, it is important to enable your e-mail address to receive the completed scan results. This simple wizard will guide you through the setup process in just a few clicks. This is a one-time setup and will be available for all of your future scans.</p>
+        <strong>Click the button below to begin the setup.</strong>
+        <!-- Mitigating control is to use url_for function https://semgrep.dev/docs/cheat-sheets/flask-xss/#mitigation-8 -->
+        <a href="{{ url_for('snssetup') }}" nosem><button type="button" class="btn btn-primary btn-lg">1-Click Topic Setup</button></div></a>
+    </div>
+    {% endif %}
+{% endblock %}

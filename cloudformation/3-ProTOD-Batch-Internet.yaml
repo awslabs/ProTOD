@@ -1,0 +1,67 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys AWS Batch to run the tools
+
+Resources:
+  ProTODBatchInternetComputeEnvironment:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties:
+      ComputeEnvironmentName: ProTODComputeEnvironment
+      Type: MANAGED
+      State: ENABLED
+      ServiceRole: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/batch.amazonaws.com/AWSServiceRoleForBatch
+      ComputeResources:
+        MaxvCpus: 5
+        Subnets:
+        - !ImportValue ProTODPrivateSubnetAZ1
+        - !ImportValue ProTODPrivateSubnetAZ2
+        Type: FARGATE_SPOT
+        SecurityGroupIds:
+        - !Ref BatchSecurityGroup
+      Tags:
+        Name: ProTODScanningService
+
+  InternetQueue:
+    Type: AWS::Batch::JobQueue
+    Properties:
+      ComputeEnvironmentOrder:
+      - ComputeEnvironment: !Ref ProTODBatchInternetComputeEnvironment
+        Order: 0
+      Priority: 1
+      State: ENABLED
+      JobQueueName: InternetQueue
+
+  BatchSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W5
+            reason: "ProTOD tools that need to access public AWS endpoints, i.e. prowler scans"
+    Properties:
+      GroupDescription: Batch Security Group
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+        Description: Allow outbound HTTPS
+      VpcId:
+        !ImportValue ProTODVPC
+      Tags:
+      - Key: Name
+        Value: Batch security group
+
+Outputs:
+  InternetQueue:
+    Description: InternetQueue
+    Value: !Ref InternetQueue
+    Export:
+      Name: "InternetQueue"
+  ProTODBatchInternetComputeEnvironment:
+    Description: Batch compute environment for ProTOD with Internet
+    Value: !Ref ProTODBatchInternetComputeEnvironment
+    Export:
+      Name: "ProTODBatchInternetComputeEnvironment"

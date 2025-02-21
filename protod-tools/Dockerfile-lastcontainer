@@ -1,0 +1,26 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# build the base image
+ARG PROTOD_BASE
+
+FROM ${PROTOD_BASE}
+
+VOLUME /opt/protod
+VOLUME /tmp
+
+RUN apk update \
+    && apk upgrade \
+    && apk add --no-cache zip
+
+COPY ./supporting-files/script-lastcontainer.sh ./supporting-files/script-all-start.sh \
+     ./supporting-files/script-all-end.sh /opt/protod/
+RUN mkdir /opt/protod/StageFolder \
+    && chown -R protod:protod /opt/protod \
+    && chmod -R 750 /opt/protod
+
+USER protod
+WORKDIR /opt/protod
+ENV LAST_CONTAINER=true
+
+ENTRYPOINT ["/opt/protod/script-lastcontainer.sh"]

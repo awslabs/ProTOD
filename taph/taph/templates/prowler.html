@@ -1,0 +1,273 @@
+<!-- Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ SPDX-License-Identifier: Apache-2.0 -->
+{% extends 'base.html' %}
+{% block title %}ProTOD - Prowler Page{% endblock %}
+{% block content %}
+<p>&nbsp;</p>
+<h1>Prowler</h1>
+<p>&nbsp;</p>
+{% include 'flash.html' %}
+{%if bs %}
+<h1>Last Batch Job Submitted</h1>
+<p>
+  <strong>Job Name: </strong>{{ bs.jobName }}<br />
+  <a href="/batchstats/?bscan={{ bs.jobId }}"><strong>Job ID: </strong>{{ bs.jobId }}</a><br />
+</p>
+{% elif ia %}
+<div class="form-wrapper">
+  <h2 class="title">Setup Prowler Scan</h2>
+  <div class=".col-md-3">
+    <p><a href="/batchstats/" class="link-info">Scan Status Page</a></p>
+
+  </div>
+  <form method="post" action="{{ url_for('prowler') }}">
+    {{ setup_form.csrf_token }}
+
+            <div class="form-group">
+              <div class="card card-body">
+                <a href="/download-cfn/ProwlerRole" class="link-info">Prowler Role Template</a>
+                <fieldset class="form-field">
+                  {{ setup_form.account_id.label }} {{
+                  setup_form.account_id(class_="form-control") }} {% if
+                  setup_form.account_id.errors %}
+                  <ul class="errors">
+                    {% for error in setup_form.account_id.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                  </ul>
+                  {% endif %}
+                </fieldset>
+
+                <p>&nbsp;</p>
+                    <div class="row">
+                    <div class="col-sm-5 col-md-6">
+                <fieldset class="form-field">
+                    {{ setup_form.external_id.label }} {{
+                    setup_form.external_id(class_="form-control") }} {% if
+                    setup_form.external_id.errors %}
+                    <ul class="errors">
+                    {% for error in setup_form.external_id.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                    {% endif %}
+                </fieldset>
+                    </div>
+                    <div class="col-sm-5 offset-sm-2 col-md-6 offset-md-0">
+                <fieldset class="form-field">
+                    {{ setup_form.role_name.label }} {{
+                    setup_form.role_name(class_="form-control", value=job_role) }} {% if
+                    setup_form.role_name.errors %}
+                    <ul class="errors">
+                    {% for error in setup_form.role_name.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                    </ul>
+                    {% endif %}
+                </fieldset>
+                    </div>
+                    </div>
+                <p>&nbsp;</p>
+            </div>
+
+    </div>
+    <hr />
+    <p>
+      <button
+        class="btn btn-primary"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#collapseExample"
+        aria-expanded="false"
+        aria-controls="collapseExample"
+      >
+        Optional Parameters
+      </button>
+    </p>
+    <div class="collapse" id="collapseExample">
+      <div class="card card-body">
+        <!-- Begin Collapse -->
+        <div class="accordion" id="accordionExample">
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingBucket">
+              <button
+                class="accordion-button"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseBucket"
+                aria-expanded="false"
+                aria-controls="collapseBucket"
+              >
+                Custom Output Bucket
+              </button>
+            </h2>
+            <div
+              id="collapseBucket"
+              class="accordion-collapse collapse"
+              aria-labelledby="headingBucket"
+              data-bs-parent="#accordionExample"
+            >
+              <div class="accordion-body">
+                <div class="form-group">
+                    <a href="/download-cfn/S3BucketRole" class="link-info">Custom Bucket Role Template</a>
+                    <fieldset class="form-field">
+                        {{ setup_form.custom_bucket.label }} {{
+                        setup_form.custom_bucket(class_="form-control") }} {% if
+                        setup_form.custom_bucket.errors %}
+                        <ul class="errors">
+                        {% for error in setup_form.custom_bucket.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
+                    <p>&nbsp;</p>
+                <div class="row">
+                  <div class="col-sm-5 col-md-6">
+                    <fieldset class="form-field">
+                        {{ setup_form.bucket_external_id.label }} {{
+                        setup_form.bucket_external_id(class_="form-control") }} {% if
+                        setup_form.bucket_external_id.errors %}
+                        <ul class="errors">
+                        {% for error in setup_form.bucket_external_id.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
+                        </div>
+                        <div class="col-sm-5 offset-sm-2 col-md-6 offset-md-0">
+                    <fieldset class="form-field">
+                        {{ setup_form.bucket_role_arn.label }} {{
+                        setup_form.bucket_role_arn(class_="form-control") }} {% if
+                        setup_form.bucket_role_arn.errors %}
+                        <ul class="errors">
+                        {% for error in setup_form.bucket_role_arn.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
+                  </div>
+                </div>
+                <p>&nbsp;</p>
+                <div class="form-check form-switch">
+                  <fieldset class="form-field">
+                    {{ setup_form.both_buckets(class_="form-check-input") }}
+                    {{ setup_form.both_buckets.label(class_="form-check-input-label") }}
+                    {% if setup_form.both_buckets.errors %}
+                      <ul class="errors">
+                        {% for error in setup_form.both_buckets.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                  </fieldset>
+                </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+              <button
+                class="accordion-button"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseOne"
+                aria-expanded="false"
+                aria-controls="collapseOne"
+              >
+                Region Select
+              </button>
+            </h2>
+            <div
+              id="collapseOne"
+              class="accordion-collapse collapse"
+              aria-labelledby="headingOne"
+              data-bs-parent="#accordionExample"
+            >
+              <div class="accordion-body">
+                <div class="form-group">
+                  <fieldset class="form-field">
+                    {{ setup_form.regions.label }}
+                    <p>&nbsp;</p>
+
+                    <input type="checkbox" id="ckbCheckAll" /> Check All
+                    {% for region in setup_form.regions %}
+                    <div>{{ region(class="regions") }} {{ region.label }}</div>
+                    {% endfor %}
+                    {% if setup_form.regions.errors %}
+                      <ul class="errors">
+                        {% for error in setup_form.regions.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                  </fieldset>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingTwo">
+              <button
+                class="accordion-button"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseTwo"
+                aria-expanded="false"
+                aria-controls="collapseTwo"
+              >
+                Compliance Framework Scan
+              </button>
+            </h2>
+            <div
+              id="collapseTwo"
+              class="accordion-collapse collapse"
+              aria-labelledby="headingTwo"
+              data-bs-parent="#accordionExample"
+            >
+              <div class="accordion-body">
+                <div class="form-group">
+                  <fieldset class="form-field">
+                    {{ setup_form.checks.label }}
+                    <p>&nbsp;</p>
+
+                    <input type="checkbox" id="ckbCheckAll2" /> Check All
+                    {% for check in setup_form.checks %}
+                    <div data-bs-toggle="tooltip" data-bs-placement="top" title="{{ check.data }}">{{ check(class="checks") }} {{ check.label.text }}</div>
+                    {% endfor %}
+                    {% if setup_form.checks.errors %}
+                      <ul class="errors">
+                        {% for error in setup_form.checks.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                  </fieldset>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- End Collapse-->
+      </div>
+    </div>
+    <p>&nbsp;</p>
+    {{ setup_form.submit(class_="btn btn-primary") }}
+  </form>
+  <script type="text/javascript" src="{{ url_for('static', filename= 'js/formcontrol.js') }}" nosem></script>
+</div>
+
+{% else %}
+<p>
+  You do not appear to be authenticated.
+  <!-- Mitigating control is to use url_for function https://semgrep.dev/docs/cheat-sheets/flask-xss/#mitigation-8 -->
+  <a href="{{ url_for('profile') }}" nosem>Please enter your credentials.</a>
+</p>
+{% endif %}
+{% endblock %}

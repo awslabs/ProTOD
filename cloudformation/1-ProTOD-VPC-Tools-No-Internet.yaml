@@ -1,0 +1,231 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+# This template creates the AWS infrastructure needed for ProTOD. Resources created are:
+# Network Infrastructure: VPC, Public and Private Subnets, IG, NAT GW, Routing Tables
+# At this time, the infrastructure is not configured for HA
+Description: Deploy the backend VPC for the tools
+
+Resources:
+  # Private Route Table
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: ProTOD Private Route Table
+  #RouteTableAssociation
+  SubnetRouteTableAssociationAZ1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetAZ1
+  #RouteTableAssociation
+  SubnetRouteTableAssociationAZ2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetAZ2
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: ProTOD VPC
+  # VPC Endpoints
+  S3Endpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcId: !Ref VPC
+  ECRDkrEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecr.dkr"
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref PrivateSubnetAZ1
+        - !Ref PrivateSubnetAZ2
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref EndpointsSG
+  ECRApiEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecr.api"
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref PrivateSubnetAZ1
+        - !Ref PrivateSubnetAZ2
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref EndpointsSG
+  CloudWatchEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.logs"
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref PrivateSubnetAZ1
+        - !Ref PrivateSubnetAZ2
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref EndpointsSG
+  SQSEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sqs"
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref PrivateSubnetAZ1
+        - !Ref PrivateSubnetAZ2
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref EndpointsSG
+  STSEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sts"
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref PrivateSubnetAZ1
+        - !Ref PrivateSubnetAZ2
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref EndpointsSG
+  BedrockEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.bedrock-runtime"
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref PrivateSubnetAZ1
+        - !Ref PrivateSubnetAZ2
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref EndpointsSG
+  # Subnet Private
+  PrivateSubnetAZ1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""] # Get the first AZ in the list
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: ProTOD Private Subnet AZ1
+  # Subnet Private
+  PrivateSubnetAZ2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""] # Get the second AZ in the list
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: ProTOD Private Subnet AZ2
+  VPCFlowLogs:
+    Type: AWS::EC2::FlowLog
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt VPCFlowLogPolicy.Arn
+      LogDestinationType: cloud-watch-logs
+      LogGroupName: !Ref LogGroup
+      ResourceId: !Ref VPC
+      ResourceType: VPC
+      TrafficType: ALL
+  VPCFlowLogPolicy:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: "vpc-flow-logs.amazonaws.com"
+            Action: "sts:AssumeRole"
+            Condition:
+              "StringEquals":
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+      Policies:
+        - PolicyName: "flowlogs-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "logs:DescribeLogGroups"
+                  - "logs:DescribeLogStreams"
+                Resource: !GetAtt "LogGroup.Arn"
+  LogGroup:
+    # Check: CKV_AWS_158: "Ensure that CloudWatch Log Group is encrypted by KMS"
+    # checkov:skip=CKV_AWS_158:No Sensitive information in logs. Log group data is always encrypted in CloudWatch Logs.
+    Type: "AWS::Logs::LogGroup"
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W84
+            reason: "No Sensitive information in logs. Log group data is always encrypted in CloudWatch Logs."
+    Properties:
+      RetentionInDays: 3653
+  EndpointsSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Endpoints Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !GetAtt VPC.CidrBlock
+          Description: Allow inbound HTTPS
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !GetAtt VPC.CidrBlock
+          Description: Allow outbound traffic
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Endpoints security group
+
+Outputs:
+  ProTODPrivateVPC:
+    Description: VPC for ProTOD File tools
+    Value: !Ref VPC
+    Export:
+      Name: "ProTODPrivateVPC"
+  ProTODPrivateVPCPrivateSubnetAZ1:
+    Description: Private Subnet for ProTOD File tools
+    Value: !Ref PrivateSubnetAZ1
+    Export:
+      Name: "ProTODPrivateVPCPrivateSubnetAZ1"
+  ProTODPrivateVPCPrivateSubnetAZ2:
+    Description: Private Subnet for ProTOD File tools
+    Value: !Ref PrivateSubnetAZ2
+    Export:
+      Name: "ProTODPrivateVPCPrivateSubnetAZ2"
+  ProTODCIDRPrivateVPC:
+    Description: VPC CIDR for ProTOD tools with no internet access
+    Value: !GetAtt VPC.CidrBlock
+    Export:
+      Name: "ProTODCIDRPrivateVPC"

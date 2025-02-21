@@ -1,0 +1,105 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploys Cognito for authentication
+
+Parameters:
+  ProTODCognitoDomain:
+    Type: String
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: ^[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?$
+    Description: Enter a string. Must be alpha numeric 3-63 in length.
+  ProTODDNS:
+    Type: String
+    Description: The FQDN of the ProTOD URL. This should match the pProTODCertificate
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolAddOns:
+        AdvancedSecurityMode: ENFORCED
+      UsernameConfiguration:
+        CaseSensitive: false
+      AutoVerifiedAttributes:
+      - email
+      EnabledMfas:
+      - "SOFTWARE_TOKEN_MFA"
+      MfaConfiguration: "ON"
+      UserPoolName: !Sub ${ProTODCognitoDomain}-user-pool
+      Schema:
+      - Name: email
+        AttributeDataType: String
+        Mutable: false
+        Required: true
+      - Name: name
+        AttributeDataType: String
+        Mutable: true
+        Required: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+      - !Sub
+        - 'https://${ProTODDNS}/oauth2/idpresponse'
+        - ProTODDNS: !Ref ProTODDNS
+      AllowedOAuthFlows:
+      - code
+      - implicit
+      AllowedOAuthScopes:
+      - phone
+      - email
+      - openid
+      - profile
+      SupportedIdentityProviders:
+      - COGNITO
+      GenerateSecret: true
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref ProTODCognitoDomain
+      UserPoolId: !Ref UserPool
+
+  UserPoolRiskConfiguration:
+    Type: AWS::Cognito::UserPoolRiskConfigurationAttachment
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientId: ALL
+      AccountTakeoverRiskConfiguration:
+        Actions:
+          HighAction:
+            EventAction: BLOCK
+            Notify: False
+          MediumAction:
+            EventAction: BLOCK
+            Notify: False
+          LowAction:
+            EventAction: BLOCK
+            Notify: False
+      CompromisedCredentialsRiskConfiguration:
+        Actions:
+            EventAction: BLOCK
+
+
+Outputs:
+  CognitoUserPoolArn:
+    Value: !GetAtt UserPool.Arn
+    Description: "CognitoUserPoolArn"
+    Export:
+      Name: "CognitoUserPoolArn"
+  CognitoAppClientID:
+    Value: !Ref UserPoolClient
+    Description: "CognitoAppClientID"
+    Export:
+      Name: "CognitoAppClientID"
+  CognitoDomain:
+    Value: !Ref ProTODCognitoDomain
+    Description: "CognitoDomain"
+    Export:
+      Name: "CognitoDomain"

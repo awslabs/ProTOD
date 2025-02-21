@@ -1,0 +1,67 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys AWS Batch to run the tools
+
+Resources:
+  ProTODBatchNoInternetComputeEnvironment:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties:
+      ComputeEnvironmentName: ProTODBatchNoInternetComputeEnvironment
+      Type: MANAGED
+      State: ENABLED
+      ServiceRole: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/batch.amazonaws.com/AWSServiceRoleForBatch
+      ComputeResources:
+        MaxvCpus: 5
+        Subnets:
+        - !ImportValue ProTODPrivateVPCPrivateSubnetAZ1
+        - !ImportValue ProTODPrivateVPCPrivateSubnetAZ2
+        Type: FARGATE_SPOT
+        SecurityGroupIds:
+        - !Ref BatchSecurityGroup
+      Tags:
+        Name: ProTODScanningService
+
+  NoInternetQueue:
+    Type: AWS::Batch::JobQueue
+    Properties:
+      ComputeEnvironmentOrder:
+      - ComputeEnvironment: !Ref ProTODBatchNoInternetComputeEnvironment
+        Order: 0
+      Priority: 1
+      State: ENABLED
+      JobQueueName: NoInternetQueue
+
+  BatchSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W5
+            reason: "ProTOD tools need to access private VPC endpoints such as S3."
+    Properties:
+      GroupDescription: Batch Security Group
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+        Description: Allow outbound HTTPS
+      VpcId:
+        !ImportValue ProTODPrivateVPC
+      Tags:
+      - Key: Name
+        Value: Batch security group
+
+Outputs:
+  NoInternetQueue:
+    Description: NoInternetQueue
+    Value: !Ref NoInternetQueue
+    Export:
+      Name: "NoInternetQueue"
+  ProTODBatchNoInternetComputeEnvironment:
+    Description: Batch compute environment for ProTOD with no Internet
+    Value: !Ref ProTODBatchNoInternetComputeEnvironment
+    Export:
+      Name: "ProTODBatchNoInternetComputeEnvironment"

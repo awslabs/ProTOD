@@ -1,0 +1,12 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+# This template enables IAM Access Analyzer
+Description: Enables IAM Access Analyzer
+
+Resources:
+  ProTODAccessAnalyzer:
+    Type: AWS::AccessAnalyzer::Analyzer
+    Properties:
+      Type: "ACCOUNT"

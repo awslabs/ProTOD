@@ -1,0 +1,116 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+# This template creates an SNS topic for DLQ and other admin notifications
+Description: Deploys an SNS topic for DLQ and other admin notifications
+
+Parameters:
+  pAdminEmailAddress:
+    Type: String
+    MaxLength: 128
+    Description: ProTOD Admin
+
+Resources:
+  # Create CMK to send out event bridge rules properly (SNS wont send events with aws managed keys)
+  SecuritySNSCMK:
+    Type: 'AWS::KMS::Key'
+    Properties:
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: protod-sns-key
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow KMS access from SNS topic
+            Effect: Allow
+            Principal:
+              Service: 'events.amazonaws.com'
+            Action:
+              - "kms:GenerateDataKey*"
+              - "kms:Decrypt"
+            Resource: "*"
+
+  CMKAlias:
+    Type: 'AWS::KMS::Alias'
+    Properties:
+      AliasName: alias/Protod-SNS-Key
+      TargetKeyId: !Ref SecuritySNSCMK
+
+  ProTODAdminSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: !Ref SecuritySNSCMK
+
+  ProtodSNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: !Ref pAdminEmailAddress
+      TopicArn: !Ref ProTODAdminSNSTopic
+
+  ProtodSNSPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref ProTODAdminSNSTopic
+      PolicyDocument:
+        Id: "Events to SNS"
+        Version: '2012-10-17'
+        Statement:
+          - Sid: "Events to SNS"
+            Effect: Allow
+            Principal:
+              Service: "events.amazonaws.com"
+            Action:
+              - 'sns:Publish'
+            Resource: !Ref ProTODAdminSNSTopic
+          - Sid: "Default SNS rules"
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action:
+              - sns:GetTopicAttributes
+              - sns:AddPermission
+              - sns:RemovePermission
+              - sns:DeleteTopic
+              - sns:Subscribe
+              - sns:ListSubscriptionsByTopic
+              - sns:Publish
+              - sns:SetTopicAttributes
+            Resource: !Ref ProTODAdminSNSTopic
+
+  ProTODAdminSNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Sid: AllowOutputBucketAccess
+          Principal:
+            AWS: !Sub "${AWS::AccountId}"
+          Effect: Allow
+          Action:
+          - sns:GetTopicAttributes
+          - sns:SetTopicAttributes
+          - sns:AddPermission
+          - sns:RemovePermission
+          - sns:DeleteTopic
+          - sns:Subscribe
+          - sns:ListSubscriptionsByTopic
+          - sns:Publish
+          Resource: !Ref ProTODAdminSNSTopic
+      Topics:
+      - !Ref ProTODAdminSNSTopic
+
+Outputs:
+  ProTODAdminSNSTopic:
+    Description: ProTODAdminSNSTopic
+    Value: !Ref ProTODAdminSNSTopic
+    Export:
+      Name: "ProTODAdminSNSTopic"

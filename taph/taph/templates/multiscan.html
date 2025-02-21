@@ -1,0 +1,154 @@
+<!-- Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ SPDX-License-Identifier: Apache-2.0 -->
+{% extends 'base.html' %}
+{% block title %}ProTOD - MultiScan{% endblock %}
+{% block content %}
+  <div class="alert alert-warning" role="alert">
+    MultiScan is currently in development and should be available soon in ProTOD.
+  </div>
+<p>&nbsp;</p>
+<div class=".col-md-3">
+    <a href="/batchstats/" class="link-info">Scan Status Page</a><br>
+
+    <p>&nbsp;</p>
+    {% include 'flash.html' %}
+
+    {%if bs %}
+    <h1 class="title">Last Batch Job Submitted</h1>
+    <p>
+        <strong>Job Name: </strong>{{ bs.jobName }}<br />
+        <a href="/batchstats/?bscan={{ bs.jobId }}"><strong>Job ID: </strong>{{ bs.jobId }}</a><br />
+    </p>
+    {% elif ia %}
+
+    <hr class="featurette-divider">
+    <div class="form-wrapper">
+        <form method="post" action="/multiscan/" class="dropzone" id="myDropzone">
+
+            {{ multiscan_form.csrf_token }}
+
+                  <fieldset class="form-field">
+                    {% for check in multiscan_form.checks %}
+                      <div data-bs-toggle="tooltip" data-bs-placement="top" title="{{ check.label.text }}">{{ check(class="checks") }} {{ check.data|capitalize }}</div>
+                      {% for scanner in multiscan_tools[check.data] %}
+                        &nbsp;&nbsp;&nbsp;&nbsp;{{ scanner|capitalize }}<br>
+                      {% endfor %}
+                      <p>&nbsp;</p>
+                    {% endfor %}
+                    {% if multiscan_form.checks.errors %}
+                      <ul class="errors">
+                        {% for error in multiscan_form.checks.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+
+
+
+
+                    <!-- {{ multiscan_form.checks.label }}
+                    <p>&nbsp;</p>
+
+                    <input type="checkbox" id="ckbCheckAll2" /> Check All
+                    {% for check in multiscan_form.checks %}
+                    <div data-bs-toggle="tooltip" data-bs-placement="top" title="{{ check.label.text }}">{{ check(class="checks") }} {{ check.data }}</div>
+                    {% endfor %}
+                    {% if multiscan_form.checks.errors %}
+                      <ul class="errors">
+                        {% for error in multiscan_form.checks.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %} -->
+                  </fieldset>
+
+
+            <div class="form-group">
+
+            <p>
+            <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBucket" aria-expanded="false" aria-controls="collapseBucket">
+                Send Output To a Specified Bucket
+            </button>
+            </p>
+            <div class="collapse" id="collapseBucket">
+                <div class="card card-body">
+                    <a href="/download-cfn/S3BucketRole" class="link-info">Custom Bucket Role Template</a>
+                    <p>To send output to a specified bucket, a role with the proper permissions will need to be added to the destination account.</p>
+                    <p>&nbsp;</p>
+                    <fieldset class="form-field">
+                      {{ multiscan_form.custom_bucket.label }}
+                      {{ multiscan_form.custom_bucket(class_="form-control") }}
+                      {% if multiscan_form.custom_bucket.errors %}
+                        <ul class="errors">
+                          {% for error in multiscan_form.custom_bucket.errors %}
+                          <li>{{ error }}</li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    </fieldset>
+                    <p>&nbsp;</p>
+                        <div class="row">
+                        <div class="col-sm-5 col-md-6">
+                    <fieldset class="form-field">
+                        {{ multiscan_form.external_id.label }} {{
+                        multiscan_form.external_id(class_="form-control") }} {% if
+                        multiscan_form.external_id.errors %}
+                        <ul class="errors">
+                        {% for error in multiscan_form.external_id.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
+                        </div>
+                        <div class="col-sm-5 offset-sm-2 col-md-6 offset-md-0">
+                    <fieldset class="form-field">
+                        {{ multiscan_form.role_arn.label }} {{
+                        multiscan_form.role_arn(class_="form-control", value=job_role) }} {% if
+                        multiscan_form.role_arn.errors %}
+                        <ul class="errors">
+                        {% for error in multiscan_form.role_arn.errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </fieldset>
+                        </div>
+                        </div>
+                    <p>&nbsp;</p>
+                <div class="form-check form-switch">
+                    <fieldset class="form-field">
+                      {{ multiscan_form.both_buckets(class_="form-check-input") }}
+                      {{ multiscan_form.both_buckets.label(class_="form-check-input-label") }}
+                      {% if multiscan_form.both_buckets.errors %}
+                        <ul class="errors">
+                          {% for error in multiscan_form.both_buckets.errors %}
+                          <li>{{ error }}</li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    </fieldset>
+                  </div>
+
+                </div>
+            </div>
+
+                {{ multiscan_form.submit(class_="btn btn-primary") }}
+            </div>
+        </form>
+        <!-- Mitigating control is to use url_for function https://semgrep.dev/docs/cheat-sheets/flask-xss/#mitigation-8 -->
+        <script type="text/javascript" src="{{ url_for('static', filename= 'js/formcontrol.js') }}" nosem></script>
+    </div>
+    <div class="dzone-class" id="{{url_for('form_submit')}}">
+      <!-- Mitigating control is to use url_for function https://semgrep.dev/docs/cheat-sheets/flask-xss/#mitigation-8 -->
+    <script type="text/javascript" src="{{ url_for('static', filename= 'js/dzconfig.js') }}" nosem></script>
+    </div>
+    {% else %}
+    <p>
+      You do not appear to be authenticated.
+      <!-- Mitigating control is to use url_for function https://semgrep.dev/docs/cheat-sheets/flask-xss/#mitigation-8 -->
+      <a href="{{ url_for('profile') }}" nosem>Please enter your credentials.</a>
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

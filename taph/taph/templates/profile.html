@@ -1,0 +1,54 @@
+<!-- Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ SPDX-License-Identifier: Apache-2.0 -->
+{% extends 'base.html' %}
+    {% block title %}ProTOD - Profile Page{% endblock %}
+
+    {% block content %}
+    <p>&nbsp;</p>
+    <h1>My Profile</h1>
+        <p>&nbsp;</p>
+        {%if ia %}
+            <h3>Profile Information</h3>
+            <p>&nbsp;</p>
+            <p>You are authenticated as:</p>
+            <p><strong>User: </strong>{{ getcall.UserId }}<br>
+            <strong>Account: </strong>{{ getcall.Account }}<br>
+            <strong>Role: </strong>{{ getcall.Arn }}<br>
+
+            <p>&nbsp;</p>
+            <h3>Session Information</h3>
+            <p>&nbsp;</p>
+            <ul>
+                {% for vars in session_vars %}
+                    <li>
+                        <emphasis class="fw-bold">{{ vars }}: {{ session_vars[vars] }}</emphasis>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <p>&nbsp;</p>
+            <h3>Server Information</h3>
+            <p>&nbsp;</p>
+            <ul>
+                {% for vars in server_vars %}
+                    <li>
+                        <emphasis class="fw-bold">{{ vars }}: {{ server_vars[vars] }}</emphasis>
+                    </li>
+                {% endfor %}
+            </ul>
+
+        {% else %}
+            <h3>{{ getcall }}</h3>
+
+    <h3>Enter your Login Credentials.</h3>
+    <!-- django-no-csrf-token is a false positive probably because we are using Flask and not Django. The very next line has the CSRF token. -->
+    <form action="{{ url_for('profile') }}" id="main_form" method="POST" nosem>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="mb-3">
+            <label for="text_area" class="form-label">Past the temporary credentials as given.</label>
+            <textarea class="form-control" rows="5" cols="200" style="width:100%;" name="text_area" form="main_form"></textarea>
+        </div>
+        <input type="submit" name="s1" value="Submit">
+    </form>
+    {% endif %}
+    {% endblock %}

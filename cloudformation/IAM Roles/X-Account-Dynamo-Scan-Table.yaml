@@ -1,0 +1,37 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+# This template enables X-Account Access to the DynamoDB Scan Table for Reporting
+Description: X-Account Access to the DynamoDB Scan Table for Reporting
+
+Parameters:
+  pAuthorizedARN:
+    Description: |
+      This is the AWS account that will run ProTOD reports.
+    Type: String
+    AllowedPattern: "^[0-9]{12}$"
+
+Resources:
+  XAccountDynamoScanForReporting:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref pAuthorizedARN
+            Action:
+              - 'sts:AssumeRole'
+      Path: "/ProTOD/"
+      Policies:
+        - PolicyName: AllowDynamoScanForReporting
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:Scan"
+                Resource: !ImportValue ProTODDynamoDBScanTableArn
+

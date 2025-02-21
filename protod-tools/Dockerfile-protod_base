@@ -1,0 +1,47 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+ARG ACCOUNT
+ARG REGION
+
+FROM ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/python:latest AS builder
+
+ARG AWS_CLI_VERSION=2.18.9
+RUN apk update \
+    && apk upgrade \
+    && apk add --no-cache git unzip groff build-base libffi-dev cmake
+RUN git clone --single-branch --depth 1 -b ${AWS_CLI_VERSION} https://github.com/aws/aws-cli.git
+
+WORKDIR /aws-cli
+RUN python -m venv venv \
+    && . venv/bin/activate \
+    && ./configure --with-install-type=portable-exe --with-download-deps \
+    && make \
+    && make install
+
+# reduce image size: remove autocomplete and examples
+RUN rm -rf \
+    /usr/local/lib/aws-cli/aws_completer \
+    /usr/local/lib/aws-cli/awscli/data/ac.index \
+    /usr/local/lib/aws-cli/awscli/examples \
+    && find /usr/local/lib/aws-cli/awscli/data -name completions-1*.json -delete \
+    && find /usr/local/lib/aws-cli/awscli/botocore/data -name examples-1.json -delete \
+    && (cd /usr/local/lib/aws-cli; for a in *.so*; do test -f /lib/$a && rm $a; done)
+
+# build the final image
+ARG ACCOUNT
+ARG REGION
+FROM ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/alpine:latest
+
+RUN apk update \
+    && apk upgrade \
+    && apk --no-cache add bash unzip \
+    && rm -rf /var/cache/apk/*
+
+RUN echo 'protod:x:1000:1000:protod:/opt/protod:' > /etc/passwd \
+    && echo 'protod:x:1000:' > /etc/group \
+    && mkdir -p /opt/protod \
+    && chown -R protod:protod /opt/protod
+
+COPY --from=builder /usr/local/lib/aws-cli/ /usr/local/lib/aws-cli/
+RUN ln -s /usr/local/lib/aws-cli/aws /usr/local/bin/aws

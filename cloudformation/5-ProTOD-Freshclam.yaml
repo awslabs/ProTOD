@@ -1,0 +1,179 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys a Freshclam scanning service with AWS Batch
+
+Resources:
+  FreshclamJobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      Type: container
+      JobDefinitionName: FreshclamScanDefinition
+      ContainerProperties:
+        Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/protod-freshclam:latest
+        JobRoleArn: !GetAtt FreshclamJobRole.Arn
+        ExecutionRoleArn: !GetAtt FreshclamTaskExecutionRole.Arn
+        ReadonlyRootFilesystem: true
+        Volumes:
+          - Name: "protod"
+          - Name: "tmp"
+        MountPoints:
+          - SourceVolume: "protod"
+            ContainerPath: "/opt/protod"
+            ReadOnly: false
+          - SourceVolume: "tmp"
+            ContainerPath: "/tmp"
+            ReadOnly: false
+        Environment:
+          - Name: "JOB_INPUT_BUCKET"
+            Value: !ImportValue ProTODWebUploadS3Bucket
+        ResourceRequirements:
+          - Type: VCPU
+            Value: "0.5"
+          - Type: MEMORY
+            Value: "2048"
+        LogConfiguration:
+          LogDriver: awslogs
+        NetworkConfiguration:
+          AssignPublicIp: DISABLED
+        FargatePlatformConfiguration:
+          PlatformVersion: 1.4.0
+      Timeout:
+        AttemptDurationSeconds: 7200
+      PlatformCapabilities:
+        - FARGATE
+
+  FreshclamJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowECS
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              "StringEquals":
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: ListBucket
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODWebUploadS3Bucket}"
+                    - ProTODWebUploadS3Bucket: !ImportValue ProTODWebUploadS3Bucket
+                Condition:
+                  StringLike:
+                    "s3:prefix":
+                      - "ClamAV/*"
+              - Sid: AllowInputBucketAccess
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODWebUploadS3Bucket}/ClamAV/*"
+                    - ProTODWebUploadS3Bucket: !ImportValue ProTODWebUploadS3Bucket
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODWebUploadS3Bucket}/ClamAV/"
+                    - ProTODWebUploadS3Bucket: !ImportValue ProTODWebUploadS3Bucket
+          PolicyName: FreshclamBucketPolicy
+
+  FreshclamTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: "GetAuthorizationToken isn't a resource-scoped API, so you can't scope it down."
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowECS
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              "StringEquals":
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ecr:BatchGetImage"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchCheckLayerAvailability"
+                Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - "logs:PutLogEvents"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - "ecr:GetAuthorizationToken"
+                Resource: "*" # GetAuthorizationToken isn't a resource-scoped API, so you can't scope it down.
+          PolicyName: FreshclamTaskExecutionRole
+
+  ProTODScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "FreshclamScheduledRule"
+      ScheduleExpression: "rate(6 hours)"
+      State: "ENABLED"
+      Targets:
+      - Arn: !ImportValue InternetQueue
+        BatchParameters:
+          JobDefinition: !Ref FreshclamJobDefinition
+          JobName: "FreshclamJobDefinition"
+        Id: Latest
+        RoleArn: !GetAtt EventBridgeRole.Arn
+
+  EventBridgeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              "StringEquals":
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'batch:SubmitJob'
+                Resource:
+                  - !Sub 'arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-queue/*Queue*'
+                  - !Sub 'arn:aws:batch:${AWS::Region}:${AWS::AccountId}:job-definition/*Definition*'
+          PolicyName: FargateEcsTaskRole
+
+Outputs:
+  FreshclamJobDefinition:
+    Description: FreshclamJobDefinition
+    Value: !Ref FreshclamJobDefinition
+    Export:
+      Name: "FreshclamJobDefinition"

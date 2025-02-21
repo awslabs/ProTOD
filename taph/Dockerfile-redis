@@ -1,0 +1,21 @@
+ARG ACCOUNT
+ARG REGION
+
+FROM ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/redis:latest
+
+RUN echo 'redis:x:999:1000:redis:/home/redis:' > /etc/passwd && \
+    echo 'redis:x:1000:redis' > /etc/group
+
+VOLUME /data
+
+COPY redis.conf /data/redis.conf
+
+RUN apk update \
+    && apk upgrade \
+    && rm -rf /var/cache/apk/*
+
+USER redis
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+CMD [ "redis-server", "/data/redis.conf" ]

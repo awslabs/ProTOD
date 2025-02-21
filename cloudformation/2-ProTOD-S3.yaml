@@ -1,0 +1,246 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+# This template creates the AWS infrastructure needed for ProTOD. Resources created are:
+# Bucket to store ProTOD output.
+# Retention for output buckets are 7 days to ensure tools output is ephemeral as it may contain sensitive customer information
+# Retention for the log bucket is 365 days to allow for forensics.
+Description: Deploys the ProTOD S3 Buckets
+
+Parameters:
+  pALBLogAccount:
+    Type: String
+    Description: ID of the AWS-owned account which receives access logs from the ALB.
+
+Resources:
+  #S3 Output Bucket
+  ProTODOutputBucket:
+  # Check: CKV_AWS_21: "Ensure the S3 bucket has versioning enabled"
+  # checkov:skip=CKV_AWS_21:ProTOD WebUpload and Output buckets files are designed to be ephemeral
+    Type: AWS::S3::Bucket
+    Properties:
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+        - Id: Rule to expire all objects after 7 days
+          Status: Enabled
+          ExpirationInDays: 7
+        - Id: Rule to expire StageFolder after 1 day
+          Status: Enabled
+          Prefix: "StageFolder"
+          ExpirationInDays: 1
+      LoggingConfiguration:
+        DestinationBucketName: !Ref ProTODAccessLogBucket
+        LogFilePrefix: protod-s3-access-logs-
+  #S3 Output Bucket Policy to enforce Transport Encryption
+  ProTODOutputBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ProTODOutputBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Action: "s3:*"
+          Effect: Deny
+          Resource:
+            - !Sub "arn:aws:s3:::${ProTODOutputBucket}/*"
+            - !Sub "arn:aws:s3:::${ProTODOutputBucket}"
+          Principal: "*"
+          Condition:
+            Bool:
+              "aws:SecureTransport": false
+  #S3 Web Upload Bucket
+  ProTODWebUploadBucket:
+  # Check: CKV_AWS_21: "Ensure the S3 bucket has versioning enabled"
+  # checkov:skip=CKV_AWS_21:ProTOD WebUpload and Output buckets files are designed to be ephemeral
+    Type: AWS::S3::Bucket
+    Properties:
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+        - Id: Rule to expire all objects after 1 day
+          Status: Enabled
+          ExpirationInDays: 1
+      LoggingConfiguration:
+        DestinationBucketName: !Ref ProTODAccessLogBucket
+        LogFilePrefix: protod-s3-access-logs-
+  #S3 Output Bucket Policy to enforce Transport Encryption
+  ProTODWebUploadBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ProTODWebUploadBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Action: "s3:*"
+          Effect: Deny
+          Resource:
+            - !Sub "arn:aws:s3:::${ProTODWebUploadBucket}/*"
+            - !Sub "arn:aws:s3:::${ProTODWebUploadBucket}"
+          Principal: "*"
+          Condition:
+            Bool:
+              "aws:SecureTransport": false
+  #S3 Log Bucket
+  ProTODLogBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+        - Id: Expire all objects after 10 years
+          Status: Enabled
+          ExpirationInDays: 3650
+        - Id: Move to Glacier after 90 days
+          Status: Enabled
+          Transitions:
+          - TransitionInDays: 90
+            StorageClass: GLACIER
+      LoggingConfiguration:
+        DestinationBucketName: !Ref ProTODAccessLogBucket
+        LogFilePrefix: protod-s3-access-logs-
+      VersioningConfiguration:
+        Status: "Enabled"
+  #S3 Log Bucket Policy to enforce Transport Encryption
+  #We also need to allow the ELB to log. See https://docs.aws.amazon.com/elasticloadbalancing/latest/application/enable-access-logging.html#attach-bucket-policy
+  ProTODLogBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ProTODLogBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Action: "s3:PutObject"
+          Effect: Allow
+          Resource: !Sub "arn:aws:s3:::${ProTODLogBucket}/*"
+          Principal:
+            "Service": "logging.s3.amazonaws.com"
+        - Action: "s3:PutObject"
+          Effect: Allow
+          Resource: !Sub "arn:aws:s3:::${ProTODLogBucket}/AWSLogs/${AWS::AccountId}/*"
+          Principal:
+            "AWS": !Sub "arn:aws:iam::${pALBLogAccount}:root"
+        - Action: "s3:*"
+          Effect: Deny
+          Resource:
+            - !Sub "arn:aws:s3:::${ProTODLogBucket}/*"
+            - !Sub "arn:aws:s3:::${ProTODLogBucket}"
+          Principal: "*"
+          Condition:
+            Bool:
+              "aws:SecureTransport": false
+  #S3 Access Log Bucket
+  ProTODAccessLogBucket:
+  # Check: CKV_AWS_18: "Ensure the S3 bucket has access logging enabled"
+  # checkov:skip=CKV_AWS_18:The access log bucket does not need access logging enabled.
+    Type: AWS::S3::Bucket
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: "The access log bucket does not need access logging enabled."
+    Properties:
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+        - Id: Expire all objects after 10 years
+          Status: Enabled
+          ExpirationInDays: 3650
+        - Id: Move to Glacier after 90 days
+          Status: Enabled
+          Transitions:
+          - TransitionInDays: 90
+            StorageClass: GLACIER
+      VersioningConfiguration:
+        Status: "Enabled"
+  #S3 Bucket Policy to enforce Transport Encryption
+  ProTODAccessLogBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ProTODAccessLogBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Action: "s3:PutObject"
+          Effect: Allow
+          Resource: !Sub "arn:aws:s3:::${ProTODAccessLogBucket}/*"
+          Principal:
+            "Service": "logging.s3.amazonaws.com"
+          Condition:
+            StringEquals:
+              "aws:SourceAccount": !Sub "${AWS::AccountId}"
+        - Action: "s3:*"
+          Effect: Deny
+          Resource:
+            - !Sub "arn:aws:s3:::${ProTODAccessLogBucket}/*"
+            - !Sub "arn:aws:s3:::${ProTODAccessLogBucket}"
+          Principal: "*"
+          Condition:
+            Bool:
+              "aws:SecureTransport": false
+Outputs:
+  ProTODOutputS3Bucket:
+    Description: S3 Bucket for ProTOD output files
+    Value: !Ref ProTODOutputBucket
+    Export:
+      Name: "ProTODOutputS3Bucket"
+  ProTODWebUploadS3Bucket:
+    Description: S3 Bucket for ProTOD Website to upload files
+    Value: !Ref ProTODWebUploadBucket
+    Export:
+      Name: "ProTODWebUploadS3Bucket"
+  ProTODS3LogBucket:
+    Description: S3 Log Bucket for ProTOD AWS service logs
+    Value: !Ref ProTODLogBucket
+    Export:
+      Name: "ProTODS3LogBucket"
+  ProTODAccessLogBucket:
+    Description: S3 Access Log Bucket
+    Value: !Ref ProTODAccessLogBucket
+    Export:
+      Name: "ProTODAccessLogBucket"

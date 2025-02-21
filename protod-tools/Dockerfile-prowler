@@ -1,0 +1,30 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+ARG PROTOD_BASE
+
+FROM ${PROTOD_BASE}
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+RUN apk add --no-cache zip git py3-pip
+
+RUN pip install --no-cache-dir --break-system-packages --upgrade pip
+
+RUN  apk add --no-cache --virtual .tmp-build-deps gcc libc-dev libffi-dev python3-dev \
+    && pip install --no-cache-dir --break-system-packages prowler \
+    && apk del .tmp-build-deps \
+    && rm -rf /var/cache/apk/*
+
+VOLUME /opt/protod
+VOLUME /tmp
+COPY ./supporting-files/script-prowler.sh ./supporting-files/script-all-start.sh \
+     ./supporting-files/script-all-end.sh /opt/protod/
+RUN chown -R protod:protod /opt/protod \
+    && chmod -R 750 /opt/protod
+
+USER protod
+WORKDIR /opt/protod
+
+ENTRYPOINT ["/opt/protod/script-prowler.sh"]

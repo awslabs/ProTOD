@@ -1,0 +1,175 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys the last container service with AWS Batch
+
+Resources:
+  LastContainerJobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      Type: container
+      JobDefinitionName: LastContainerDefinition
+      ContainerProperties:
+        Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/protod-lastcontainer:latest
+        JobRoleArn: !GetAtt LastContainerJobRole.Arn
+        ExecutionRoleArn: !GetAtt LastContainerTaskExecutionRole.Arn
+        ReadonlyRootFilesystem: true
+        Volumes:
+          - Name: "protod"
+          - Name: "tmp"
+        MountPoints:
+          - SourceVolume: "protod"
+            ContainerPath: "/opt/protod"
+            ReadOnly: false
+          - SourceVolume: "tmp"
+            ContainerPath: "/tmp"
+            ReadOnly: false
+        ResourceRequirements:
+          - Type: VCPU
+            Value: "0.5"
+          - Type: MEMORY
+            Value: "1024"
+        LogConfiguration:
+          LogDriver: awslogs
+        NetworkConfiguration:
+          AssignPublicIp: DISABLED
+        FargatePlatformConfiguration:
+          PlatformVersion: 1.4.0
+      Timeout:
+        AttemptDurationSeconds: 7200
+      PlatformCapabilities:
+        - FARGATE
+
+  LastContainerJobRole:
+    # Check: CKV_AWS_107: "Ensure IAM policies does not allow credentials exposure"
+    # checkov:skip=CKV_AWS_107:AssumeRole needed for containers to save to external buckets. Mitigated with role condition.
+    # Check: CKV_AWS_111: "Ensure IAM policies does not allow write access without constraints"
+    # checkov:skip=CKV_AWS_111:Containers must be able to assume any named role to save files in external buckets.
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: "Container must be able to assume any named role to save files in external buckets."
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowECS
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              "StringEquals":
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: AllowAssumeRole
+                Effect: Allow
+                Action: sts:AssumeRole
+                Resource: "*"
+          PolicyName: AssumeRolePolicy
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: AllowInputBucketDeleteAccess
+                Effect: Allow
+                Action:
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODWebUploadS3Bucket}/*"
+                    - ProTODWebUploadS3Bucket: !ImportValue ProTODWebUploadS3Bucket
+              - Sid: AllowInputBucketListAccess
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODWebUploadS3Bucket}"
+                    - ProTODWebUploadS3Bucket: !ImportValue ProTODWebUploadS3Bucket
+              - Sid: AllowOutputBucketWriteAccess
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODOutputS3Bucket}/*"
+                    - ProTODOutputS3Bucket: !ImportValue ProTODOutputS3Bucket
+              - Sid: AllowOutputBucketStageListAccess
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODOutputS3Bucket}"
+                    - ProTODOutputS3Bucket: !ImportValue ProTODOutputS3Bucket
+                Condition:
+                  StringLike:
+                    "s3:prefix":
+                      - "StageFolder/*"
+              - Sid: AllowOutputBucketStageRWAccess
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODOutputS3Bucket}/StageFolder/*"
+                    - ProTODOutputS3Bucket: !ImportValue ProTODOutputS3Bucket
+          PolicyName: LastContainerBucketPolicy
+
+  LastContainerTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: "GetAuthorizationToken isn't a resource-scoped API, so you can't scope it down."
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowECS
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              "StringEquals":
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ecr:BatchGetImage"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchCheckLayerAvailability"
+                Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - "logs:PutLogEvents"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - "ecr:GetAuthorizationToken"
+                Resource: "*" # GetAuthorizationToken isn't a resource-scoped API, so you can't scope it down.
+          PolicyName: LastContainerTaskExecutionRole
+
+Outputs:
+  LastContainerJobDefinition:
+    Description: LastContainerJobDefinition
+    Value: !Ref LastContainerJobDefinition
+    Export:
+      Name: "LastContainerJobDefinition"

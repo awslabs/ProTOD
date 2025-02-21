@@ -1,0 +1,29 @@
+<!-- Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ SPDX-License-Identifier: Apache-2.0 -->
+{% block featurette%}
+    {% for tool in tools %}
+
+        <table class="table table-striped table-hover">
+        <tbody>
+            <tr>
+            <td class="align-middle" width="20%">
+                <!-- The Jinja2 renders first here. The double quotes in double quotes is odd but not interfering. -->
+                <div data-bs-toggle="tooltip" data-bs-placement="left" title="{{ tool["TOOL_META"]["M"]["DESCRIPTION"]["S"] }}" nosem>
+                    <img src="data:image/png;base64,{{ tool["TOOL_META"]["M"]["IMG_NAME"]["S"] }}" class="card-img-top img-25" alt="{{ tool["TOOL_META"]["M"]["PRINT_NAME"]["S"] }}" nosem>
+                </div>
+            </td>
+            <td class="align-middle" width="15%">{{ tool["TOOL_META"]["M"]["PRINT_NAME"]["S"] }}</td>
+            <td class="align-middle" width="45%">{{ tool["TOOL_META"]["M"]["SHORT"]["S"] }}</td>
+        {% if tool["TOOL_TYPE"]["S"] in ["file-scan", "multiscan"] %}
+            <!-- Mitigating control is to use url_for function https://semgrep.dev/docs/cheat-sheets/flask-xss/#mitigation-8 -->
+            <td class="align-middle" width="20%"><a href={{ url_for('my_scan_tool', my_tool=tool["TOOL_NAME"]["S"]) }} class="btn btn-primary" nosem>
+        {% else %}
+            <td class="align-middle" width="20%"><a href={{ url_for(tool["TOOL_NAME"]["S"]) }} class="btn btn-primary" nosem>
+        {% endif %}
+            Launch</a></td>
+            </tr>
+        </tbody>
+        </table>
+
+    {% endfor %}
+{% endblock %}

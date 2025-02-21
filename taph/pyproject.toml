@@ -1,0 +1,11 @@
+[tool.pylic]
+safe_licenses = [
+    "Apache Software License",
+    "BSD License",
+    "MIT License",
+    "Mozilla Public License 2.0 (MPL 2.0)",
+]
+unsafe_packages = [
+]
+ignore_packages = [
+]

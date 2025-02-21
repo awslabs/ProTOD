@@ -1,0 +1,155 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys a Terrascan scanning service with AWS Batch
+
+Resources:
+  TerrascanJobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      Type: container
+      JobDefinitionName: TerrascanDefinition
+      ContainerProperties:
+        Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/protod-terrascan:latest
+        JobRoleArn: !GetAtt TerrascanJobRole.Arn
+        ExecutionRoleArn: !GetAtt TerrascanTaskExecutionRole.Arn
+        ReadonlyRootFilesystem: true
+        Volumes:
+          - Name: "protod"
+          - Name: "tmp"
+        MountPoints:
+          - SourceVolume: "protod"
+            ContainerPath: "/opt/protod"
+            ReadOnly: false
+          - SourceVolume: "tmp"
+            ContainerPath: "/tmp"
+            ReadOnly: false
+        ResourceRequirements:
+          - Type: VCPU
+            Value: "0.5"
+          - Type: MEMORY
+            Value: "1024"
+        LogConfiguration:
+          LogDriver: awslogs
+        NetworkConfiguration:
+          AssignPublicIp: DISABLED
+        FargatePlatformConfiguration:
+          PlatformVersion: 1.4.0
+      Timeout:
+        AttemptDurationSeconds: 7200
+      PlatformCapabilities:
+        - FARGATE
+
+  TerrascanJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowECS
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              "StringEquals":
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: AllowAssumeRole
+                Effect: Allow
+                Action: sts:AssumeRole
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
+          PolicyName: AssumeRolePolicy
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: AllowOutputBucketAccess
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODOutputS3Bucket}/StageFolder/*"
+                    - ProTODOutputS3Bucket: !ImportValue ProTODOutputS3Bucket
+              - Sid: AllowInputBucketListAccess
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODWebUploadS3Bucket}"
+                    - ProTODWebUploadS3Bucket: !ImportValue ProTODWebUploadS3Bucket
+              - Sid: AllowInputBucketReadAccess
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - !Sub
+                    - "arn:aws:s3:::${ProTODWebUploadS3Bucket}/*"
+                    - ProTODWebUploadS3Bucket: !ImportValue ProTODWebUploadS3Bucket
+          PolicyName: TerrascanBucketPolicy
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: AllowSendToSQS
+                Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource:
+                  - !ImportValue ProTODSQSArn
+          PolicyName: TerrascanSQSPolicy
+
+  TerrascanTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: "GetAuthorizationToken isn't a resource-scoped API, so you can't scope it down."
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowECS
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              "StringEquals":
+                "aws:SourceAccount": !Sub "${AWS::AccountId}"
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ecr:BatchGetImage"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchCheckLayerAvailability"
+                Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - "logs:PutLogEvents"
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - "ecr:GetAuthorizationToken"
+                Resource: "*" # GetAuthorizationToken isn't a resource-scoped API, so you can't scope it down.
+          PolicyName: TerrascanTaskExecutionRole
+
+Outputs:
+  TerrascanJobDefinition:
+    Description: TerrascanJobDefinition
+    Value: !Ref TerrascanJobDefinition
+    Export:
+      Name: "TerrascanJobDefinition"

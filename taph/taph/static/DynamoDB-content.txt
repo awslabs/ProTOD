@@ -1,0 +1,788 @@
+{
+	"TOOL": [{
+			"TOOL_NAME": {
+				"S": "bandit"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "Bandit"
+					},
+					"SHORT": {
+						"S": "For Python code Scanning."
+					},
+					"DESCRIPTION": {
+						"S": "Finds  security issues in Python code."
+					},
+					"LANGUAGES": {
+						"S": "python"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "BanditDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "cfnnag"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "CFN Nag"
+					},
+					"SHORT": {
+						"S": "For CloudFormation Templates."
+					},
+					"DESCRIPTION": {
+						"S": "Looks for patterns in CloudFormation templates that may indicate insecure infrastructure."
+					},
+					"LANGUAGES": {
+						"S": "cloudformation"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "CfnNagDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "checkov"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "Checkov"
+					},
+					"SHORT": {
+						"S": "Policy-as-code for everyone"
+					},
+					"DESCRIPTION": {
+						"S": "Find misconfigurations in Terraform, CloudFormation, Kubernetes, Helm, ARM Templates and Serverless framework."
+					},
+					"LANGUAGES": {
+						"S": "docker,terraform,cloudformation,cdk,serverless"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "CheckovDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "semgrep"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "Semgrep"
+					},
+					"SHORT": {
+						"S": "Code scanning at ludicrous speed."
+					},
+					"DESCRIPTION": {
+						"S": "Finds bugs and detects vulnerabilities in third-party dependencies, and enforces code standards."
+					},
+					"LANGUAGES": {
+						"S": "go,ruby,typescript,javascript,python,java"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "SemgrepDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "terrascan"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "Terrascan"
+					},
+					"SHORT": {
+						"S": "Terrascan is a static code analyzer for Infrastructure as Code."
+					},
+					"DESCRIPTION": {
+						"S": "Scans Terraform infrastructure as code for misconfigurations."
+					},
+					"LANGUAGES": {
+						"S": "terraform"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "TerrascanDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "shellcheck"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "Shell Check"
+					},
+					"SHORT": {
+						"S": "A shell script static analysis tool."
+					},
+					"DESCRIPTION": {
+						"S": "Finds and clarifies syntax issues that cause a shell to give cryptic error messages."
+					},
+					"LANGUAGES": {
+						"S": "shell"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "ShellcheckDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "detectsecrets"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "Detect Secrets"
+					},
+					"SHORT": {
+						"S": "Detecting secrets within a code base."
+					},
+					"DESCRIPTION": {
+						"S": "Provides a checklist of secrets to roll and migrate off to a more secure storage."
+					},
+					"LANGUAGES": {
+						"S": "all"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "DetectsecretsDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "kics"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "KICS"
+					},
+					"SHORT": {
+						"S": "Keeping Infrastructure as Code Secure"
+					},
+					"DESCRIPTION": {
+						"S": "An infrastructure as code file scanner supporting a number of IaC languages."
+					},
+					"LANGUAGES": {
+						"S": "docker,terraform,cloudformation,cdk,serverless"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "KicsDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "yamllint"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "YamlLint"
+					},
+					"SHORT": {
+						"S": "A linter for YAML files"
+					},
+					"DESCRIPTION": {
+						"S": "yamllint does not only check for syntax validity, but for weirdnesses like key repetition and cosmetic problems such as lines length, trailing spaces, indentation, etc."
+					},
+					"LANGUAGES": {
+						"S": "yaml"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "YamllintDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "clamav"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "ClamAV"
+					},
+					"SHORT": {
+						"S": "AntiVirus Scanner"
+					},
+					"DESCRIPTION": {
+						"S": "ClamAV is an open-source antivirus engine for detecting trojans, viruses, malware & other malicious threats."
+					},
+					"LANGUAGES": {
+						"S": "all"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "ClamavScanDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "cfnlint"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "CfnLint"
+					},
+					"SHORT": {
+						"S": "CloudFormation Linter"
+					},
+					"DESCRIPTION": {
+						"S": "Validate AWS CloudFormation yaml/json templates against the AWS CloudFormation Resource Specification."
+					},
+					"LANGUAGES": {
+						"S": "cloudformation"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "CfnLintDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "tflint"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "TfLint"
+					},
+					"SHORT": {
+						"S": "Terraform Linter"
+					},
+					"DESCRIPTION": {
+						"S": "TFLin finds possible errors, Warn about deprecated syntax and unused declarations, and Enforce best practices and naming conventions"
+					},
+					"LANGUAGES": {
+						"S": "terraform"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "TfLintDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "tfsec"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "true"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "TfSec"
+					},
+					"SHORT": {
+						"S": "Terraform Static Code Analyzer"
+					},
+					"DESCRIPTION": {
+						"S": "TfSec uses static analysis of your terraform code to spot potential misconfigurations."
+					},
+					"LANGUAGES": {
+						"S": "terraform"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "TfSecDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "repolinter"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "false"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "RepoLinter"
+					},
+					"SHORT": {
+						"S": "Lint open source repositories for common issues"
+					},
+					"DESCRIPTION": {
+						"S": "RepoLinter Lint open source repositories for common issues."
+					},
+					"LANGUAGES": {
+						"S": "git"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "RepolinterDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "bedrock"
+			},
+			"TOOL_TYPE": {
+				"S": "file-scan"
+			},
+			"MULTISCAN": {
+				"S": "false"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "Bedrock"
+					},
+					"SHORT": {
+						"S": "For ProTOD, Amazon BedRock is used to find security issues, make recommendations and create threat models."
+					},
+					"DESCRIPTION": {
+						"S": "Amazon Bedrock is a fully managed service that offers a choice of high-performing foundation models (FMs) from leading AI companies like AI21 Labs, Anthropic, Cohere, Meta, Stability AI, and Amazon via a single API, along with a broad set of capabilities you need to build generative AI applications with security, privacy, and responsible AI."
+					},
+					"LANGUAGES": {
+						"S": "all"
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "BedRockDefinition"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "multiscan"
+			},
+			"TOOL_TYPE": {
+				"S": "multiscan"
+			},
+			"JOB": {
+				"M": {
+					"JOB_DEFINITION": {
+						"S": "KicsDefinition"
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-INPUT-BUCKET"
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					},
+					"JOB_QUEUE": {
+						"S": "NoInternetQueue"
+					},
+					"JOB_ROLE": {
+						"S": ""
+					}
+				}
+			},
+			"MULTISCAN": {
+				"S": "false"
+			},
+			"TOOL_META": {
+				"M": {
+					"DESCRIPTION": {
+						"S": "Run a scan with all of the ProTOD scanners."
+					},
+					"IMG_NAME": {
+						"S": ""
+					},
+					"LANGUAGES": {
+						"S": "all"
+					},
+					"PRINT_NAME": {
+						"S": "Multiscan"
+					},
+					"SHORT": {
+						"S": "Scan with all file scanners."
+					}
+				}
+			}
+		},
+		{
+			"TOOL_NAME": {
+				"S": "prowler"
+			},
+			"TOOL_TYPE": {
+				"S": "cross-account"
+			},
+			"MULTISCAN": {
+				"S": "false"
+			},
+			"TOOL_META": {
+				"M": {
+					"PRINT_NAME": {
+						"S": "Prowler"
+					},
+					"SHORT": {
+						"S": "The handy AWS Security Tool."
+					},
+					"DESCRIPTION": {
+						"S": "Performs AWS security assessment for auditing, hardening and incident response."
+					},
+					"LANGUAGES": {
+						"S": ""
+					}
+				}
+			},
+			"JOB": {
+				"M": {
+					"JOB_QUEUE": {
+						"S": "InternetQueue"
+					},
+					"JOB_DEFINITION": {
+						"S": "ProwlerScanDefinition"
+					},
+					"JOB_ROLE": {
+						"S": "ProwlerExecRole"
+					},
+					"JOB_INPUT_BUCKET": {
+						"S": ""
+					},
+					"JOB_OUTPUT_BUCKET": {
+						"S": "REPLACE-WITH-JOB-OUTPUT-BUCKET"
+					}
+				}
+			}
+		}
+	]
+}

@@ -1,0 +1,30 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Dependency Image
+ARG PROTOD_BASE
+ARG ACCOUNT
+ARG REGION
+
+FROM ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/tflint-bundle:latest AS builder
+
+# Base Image
+
+FROM ${PROTOD_BASE}
+
+# Install tflint
+VOLUME /opt/protod
+VOLUME /tmp
+
+COPY --from=builder /usr/local/bin/tflint /usr/local/bin
+COPY --from=builder /root/.tflint.d /opt/protod/.tflint.d
+
+COPY ./supporting-files/script-tflint.sh ./supporting-files/script-all-start.sh \
+     ./supporting-files/script-all-end.sh /opt/protod/
+RUN chown -R protod:protod /opt/protod /usr/local/bin/tflint /opt/protod/.tflint.d \
+    && chmod -R 750 /opt/protod /usr/local/bin/tflint /opt/protod/.tflint.d
+
+USER protod
+WORKDIR /opt/protod
+
+ENTRYPOINT [ "/opt/protod/script-tflint.sh" ]

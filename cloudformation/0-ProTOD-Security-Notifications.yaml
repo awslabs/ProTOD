@@ -1,0 +1,75 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Creates notifications for security alerts
+
+Resources:
+# Eventbridge rule to send out sns notifications for security events found in security hub
+
+  SecHubEventBridge:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: default
+      State: ENABLED
+      EventPattern:
+        source:
+          - aws.securityhub
+        detail-type:
+          - "Security Hub Findings - Imported"
+        detail:
+          findings:
+            RecordState:
+              - ACTIVE
+            Severity:
+              Label:
+                - CRITICAL
+            Workflow:
+              Status:
+                - NEW
+                - NOTIFIED
+      Targets:
+        - Arn: !ImportValue ProTODAdminSNSTopic
+          Id: "SecuritySNStopic"
+          InputTransformer:
+            InputPathsMap:
+              acct: $.detail.findings[0].AwsAccountId
+              arn: $.detail.findings[0].ProductArn
+              desc: $.detail.findings[0].Description
+              firstfound: $.detail.findings[0].FirstObservedAt
+              full: $.detail.findings
+              id: $.detail.findings[0].Id
+              lastfound: $.detail.findings[0].LastObservedAt
+              recordstate: $.detail.findings[0].RecordState
+              rem: $.detail.findings[0].Remediation.Recommendation.Text
+              rid: $.detail.findings[0].Resources[0].Id
+              rregion: $.detail.findings[0].Resources[0].Region
+              rtype: $.detail.findings[0].Resources[0].Type
+              sev: $.detail.findings[0].Severity.Label
+              source: $.source
+              title: $.detail.findings[0].Title
+            InputTemplate: |-
+              "<sev> Severity Alert found in Account <acct>"
+
+              "Alert Title: <title>"
+
+              "Alert Description: <desc>"
+
+              "Resource ID: <rid>"
+              "Resource Type: <rtype>"
+              "Resource Region: <rregion>"
+              "Effected Account: <acct>"
+              "Severity: <sev>"
+
+              "Alert ARN: <arn>"
+              "Alerting Source: <source>"
+              "Event ID: <id>"
+              "Alarm State: <recordstate>"
+
+              "Alert First Seen: <firstfound>"
+              "Alert Last Seen: <lastfound>"
+
+
+
+              "Full output:"
+              "<full>"

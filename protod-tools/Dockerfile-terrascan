@@ -1,0 +1,32 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Dependency Image
+ARG PROTOD_BASE
+ARG ACCOUNT
+ARG REGION
+
+FROM ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/terrascan:latest AS terrascan
+
+# Base Image
+
+FROM ${PROTOD_BASE}
+
+RUN apk add --no-cache git \
+    && rm -rf /var/cache/apk/*
+
+COPY --from=terrascan /go/bin/terrascan /usr/local/bin/
+
+VOLUME /opt/protod
+VOLUME /tmp
+
+COPY ./supporting-files/script-terrascan.sh ./supporting-files/script-all-start.sh \
+     ./supporting-files/script-all-end.sh /opt/protod/
+RUN terrascan init && \
+    chown -R protod:protod /opt/protod && \
+    chmod -R 750 /opt/protod
+
+USER protod
+WORKDIR /opt/protod
+
+ENTRYPOINT [ "/opt/protod/script-terrascan.sh" ]

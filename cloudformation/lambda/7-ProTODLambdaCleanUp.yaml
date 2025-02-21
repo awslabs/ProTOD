@@ -1,0 +1,164 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This template deploys a Lambda function to Clean ProTOD unused resources
+
+Resources:
+  ProTODCleanUp:
+  # Check: CKV_AWS_117: "Ensure that AWS Lambda function is configured inside a VPC"
+  # checkov:skip=CKV_AWS_117:Lambda does not need access to VPC resources
+    Type: AWS::Lambda::Function
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W89
+            reason: "Lambda does not need access to VPC resources."
+    Properties:
+      Description: Lambda Function to create a signed URL for the ProTOD output and send it to the Consultant.
+      DeadLetterConfig:
+        TargetArn: !ImportValue ProTODAdminSNSTopic
+      TracingConfig:
+        Mode: Active
+      Role: !GetAtt ProTODLambdaCleanUpRole.Arn
+      ReservedConcurrentExecutions: 100
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Code:
+        ZipFile: !Sub |
+          import sys
+          import logging
+          from datetime import datetime
+
+          import boto3
+          from botocore.exceptions import ClientError
+
+          AWS_REGION = '${AWS::Region}'
+          AWS_ACCOUNT = '${AWS::AccountId}'
+
+
+          def get_topics():
+              response = sns_client.list_topics()
+              topics = response['Topics']
+              while (response.get("NextToken", None) is not None):
+                  response = sns_client.list_topics(NextToken=response.get("NextToken"))
+                  topics = topics + response['Topics']
+              return topics
+
+
+          def delete_old_topics(topics):
+              for topic in topics:
+                  topicArn = topic["TopicArn"]
+                  mystring = "arn:aws:sns:" + AWS_REGION + ":" + AWS_ACCOUNT + ":protod-"
+                  if topicArn.startswith(mystring):
+                      tags = sns_client.list_tags_for_resource(ResourceArn=topicArn)
+                      if tags["Tags"]:
+                          for tag in tags["Tags"]:
+                              if tag["Key"] == "LastUsed":
+                                  last_updated_date = tag["Value"]
+                                  try:
+                                      bool(datetime.strptime(last_updated_date, "%Y-%m-%d"))
+                                  except ValueError as e:
+                                      print(f"Topic tag LastUsed is not in the right format giving error {e}")
+                                      sys.exit(1)
+                                  python_date = datetime.strptime(last_updated_date, "%Y-%m-%d")
+                                  delta_days = (datetime.now() - python_date).days
+                                  if delta_days > alert_days and delta_days <= retain_days:
+                                      subscriptions = sns_client.list_subscriptions_by_topic(TopicArn=topicArn)
+                                      if subscriptions['Subscriptions']:
+                                          subject = "ProTOD - SNS Topic Scheduled Deletion"
+                                          message = "Your ProTOD SNS topic is " + str(delta_days) + " days old and will be deleted from the system at the 1 year mark as part of our resource frugality process. " + \
+                                                    "Once deleted, you will be able to re-create the topic by logging into ProTOD again"
+                                          print("Notifying " + topicArn)
+                                          publish_message(topicArn, message, subject)
+                                  if delta_days > retain_days:
+                                      subscriptions = sns_client.list_subscriptions_by_topic(TopicArn=topicArn)
+                                      if subscriptions['Subscriptions']:
+                                          subject = "ProTOD - SNS Topic Deleted"
+                                          message = "Your ProTOD SNS topic is " + str(delta_days) + " days old and it has been deleted. " + \
+                                                    "You will be able to re-create the topic by logging into ProTOD again"
+                                          print("Notifying " + topicArn)
+                                          publish_message(topicArn, message, subject)
+                                      print("Deleting " + topicArn)
+                                      sns_client.delete_topic(TopicArn=topicArn)
+
+
+          def publish_message(topic_arn, message, subject):
+              try:
+                  response = sns_client.publish(
+                      TopicArn=topic_arn,
+                      Message=message,
+                      Subject=subject,
+                  )['MessageId']
+              except ClientError:
+                  logger.exception('Could not publish message to the topic.')
+                  raise
+              else:
+                  return response
+
+
+          alert_days = 355
+          retain_days = 365
+          logging.basicConfig(level=logging.INFO)
+          logger = logging.getLogger()
+          sns_client = boto3.client('sns', region_name=AWS_REGION)
+          topics = get_topics()
+          delete_old_topics(topics)
+
+  ProTODLambdaCleanUpRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+            reason: "xray:PutTraceSegments and PutTelemetryRecords aren't resource-scoped API, so you can't scope them down."
+    Properties:
+      Path: "/ProTOD/"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - "logs:CreateLogGroup"
+            - "logs:CreateLogStream"
+            - "logs:PutLogEvents"
+            Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+        PolicyName: ProTODLambdaBasicExecutionRole
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - "sns:Publish"
+            - "sns:ListTopics"
+            - "sns:ListTagsForResource"
+            - "sns:ListSubscriptionsByTopic"
+            - "sns:DeleteTopic"
+            Resource: !Sub "arn:aws:sns:${AWS::Region}:${AWS::AccountId}:*"
+        PolicyName: ProTODLambdaSNSTopicExecutionRole
+      - PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - "xray:PutTraceSegments"
+            - "xray:PutTelemetryRecords"
+            Resource: "*"     # These are not resource-scoped API, so you can't scope them down.
+        PolicyName: ProTODLambdaXRayPermissions
+
+Outputs:
+  ProTODLambdaCleanUp:
+    Description: Lambda Function ARN
+    Value:
+      Fn::GetAtt: ProTODCleanUp.Arn
+    Export:
+      Name: "ProTODLambdaCleanUp"
