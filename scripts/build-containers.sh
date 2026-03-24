@@ -78,7 +78,7 @@ if [[ "$sourceimages" = true ]]; then
     external_images=("redis:7-alpine" \
                     "alpine:3.20" \
                     "python:3.11-alpine3.20" \
-                    "checkmarx/kics:latest" \
+#                    "checkmarx/kics:latest" \
                     "tenable/terrascan:1.19.2" \
                     "ghcr.io/terraform-linters/tflint-bundle:latest" \
                     "aquasec/tfsec:latest")
