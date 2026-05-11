@@ -20,6 +20,37 @@ import jwt
 from flask import flash, redirect, request, url_for
 from modules.simplyred import RedisClient
 
+# Critical header extensions this application actually understands.
+# Per RFC 7515 §4.1.11, any extension listed in "crit" that is not in this
+# set MUST cause the JWS to be rejected. PyJWT does not enforce this itself
+# (same class of issue as CVE-2025-59420 in Authlib), so we validate here.
+_SUPPORTED_CRIT = {"b64"}
+
+
+def _validate_crit(headers):
+    """Validate the JWS 'crit' (Critical) header per RFC 7515 §4.1.11.
+
+    Rejects tokens whose 'crit' array lists extensions we do not support,
+    preventing silent bypass of security-relevant header parameters
+    (e.g., token-binding or MFA-enforcement extensions).
+    """
+    if not isinstance(headers, dict):
+        raise jwt.InvalidTokenError("Invalid JWS header")
+    crit = headers.get("crit")
+    if crit is None:
+        return
+    if not isinstance(crit, list) or len(crit) == 0:
+        raise jwt.InvalidTokenError("crit header must be a non-empty array")
+    for ext in crit:
+        if not isinstance(ext, str) or not ext:
+            raise jwt.InvalidTokenError("crit header entries must be non-empty strings")
+        if ext not in _SUPPORTED_CRIT:
+            raise jwt.InvalidTokenError(f"Unsupported critical extension: {ext}")
+        if ext not in headers:
+            raise jwt.InvalidTokenError(
+                f"Critical extension '{ext}' declared in crit but missing from header"
+            )
+
 
 def __open_session():
     fn_session = boto3.session.Session()
@@ -54,6 +85,9 @@ def verify_jwt(token, server_redis, renew=False):
     try:
         lambda_jwt_arn = server_redis.get("LAMBDA_JWT_ARN")
         token_header = jwt.get_unverified_header(token)
+        # Enforce RFC 7515 §4.1.11 — reject tokens with unknown critical
+        # extensions before using any header-derived values (alg, kid).
+        _validate_crit(token_header)
         kid = token_header["kid"]
         alg = token_header["alg"]
         if server_redis.exists("JWT_PUB_KEY_CACHE") and not renew:
