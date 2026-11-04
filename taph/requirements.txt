@@ -23,5 +23,5 @@ s3transfer~=0.10.2
 six~=1.16.0
 urllib3~=2.8.0
 valkey~=6.0.2
-Werkzeug~=3.1.4
+Werkzeug~=3.1.9
 WTForms~=3.1.2
