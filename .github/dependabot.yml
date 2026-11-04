@@ -1,0 +1,26 @@
+# Dependabot version updates. Security updates are already on in the repo settings; this adds
+# routine updates so pins don't drift until an advisory forces a large jump.
+#
+# Docker is deliberately not listed. Every Dockerfile's base image comes from a build arg with no
+# default (${PROTOD_BASE}, ${ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com/...) and is tagged :latest,
+# so Dependabot has nothing it can resolve or bump.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /taph
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for all patch and minor bumps, which .github/workflows/ci.yml can merge on its own
+      # once the checks pass. Major bumps stay as separate PRs for a person to review.
+      pip-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions-minor-and-patch:
+        update-types: [minor, patch]

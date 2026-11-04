@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Read-only by default. Only the auto-merge job below asks for write access.
+permissions:
+  contents: read
+
+jobs:
+  taph:
+    name: taph dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Pinned to 3.12, not "latest": msgspec~=0.18.6 has no wheel for 3.14+ and does not build
+      # from source there. Raise this once msgspec is bumped.
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install requirements
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r taph/requirements.txt
+          python -m pip check
+
+      # The repo has no test suite yet, so this is a smoke test of the code the riskiest
+      # dependencies (PyJWT, cryptography) sit behind: both modules must import, and a JWT must
+      # still verify through verifyjwt.py's own jwt.decode call shape.
+      - name: Smoke test
+        working-directory: taph/taph
+        run: |
+          python - <<'EOF'
+          import importlib, jwt
+          from cryptography.hazmat.primitives import serialization
+          from cryptography.hazmat.primitives.asymmetric import rsa
+          from cryptography.fernet import Fernet
+
+          for m in ("modules.verifyjwt", "modules.crypto"):
+              importlib.import_module(m)
+
+          key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+          pub = key.public_key().public_bytes(
+              serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+          ).decode()
+          token = jwt.encode({"sub": "ci"}, key, algorithm="RS256", headers={"kid": "ci"})
+          alg = jwt.get_unverified_header(token)["alg"]
+          assert jwt.decode(token, pub, alg)["sub"] == "ci"
+
+          f = Fernet(Fernet.generate_key())
+          assert f.decrypt(f.encrypt(b"ci")) == b"ci"
+          print("smoke test ok")
+          EOF
+
+      - name: Audit for known vulnerabilities
+        run: |
+          python -m pip install pip-audit==2.10.1
+          pip-audit -r taph/requirements.txt
+
+  # Merges a Dependabot PR on its own, but only when:
+  #   - the PR was opened by Dependabot in this repository (not a fork),
+  #   - every check above passed (needs: taph), and
+  #   - the update is a patch or minor version bump. Major bumps wait for a person.
+  #
+  # Runs on pull_request, not pull_request_target, so it never executes PR code with write access.
+  # The PR URL comes from the event payload through env, never interpolated into the script.
+  dependabot-automerge:
+    name: Dependabot auto-merge
+    needs: taph
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.repository == 'awslabs/ProTOD'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge patch and minor updates
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge --squash "$PR_URL"
