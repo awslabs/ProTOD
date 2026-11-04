@@ -68,6 +68,12 @@ jobs:
   #   - every check above passed (needs: taph), and
   #   - the update is a patch or minor version bump. Major bumps wait for a person.
   #
+  # It enables GitHub auto-merge (--auto) rather than merging directly. A direct merge right after
+  # the checks finish raced GitHub's re-evaluation of the branch protection: the required check had
+  # passed, but the PR was not yet mergeable, so every Dependabot PR failed with "the base branch
+  # policy prohibits the merge". With --auto, GitHub merges once every required check has passed,
+  # including any added to main's protection later. Needs "Allow auto-merge" on in the repo settings.
+  #
   # Runs on pull_request, not pull_request_target, so it never executes PR code with write access.
   # The PR URL comes from the event payload through env, never interpolated into the script.
   dependabot-automerge:
@@ -94,4 +100,4 @@ jobs:
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --squash "$PR_URL"
+        run: gh pr merge --auto --squash "$PR_URL"
